@@ -43,4 +43,9 @@ class Workspace extends Model
     {
         return $this->hasMany(Project::class, 'workspace_id');
     }
+
+    public function workspaceRoles()
+    {
+        return $this->hasMany(WorkspaceRole::class, 'workspace_id');
+    }
 }

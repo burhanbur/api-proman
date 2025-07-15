@@ -24,6 +24,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('uuid', 36)->nullable();
+            $table->string('code')->unique();
             $table->string('username')->unique();
             $table->string('name')->nullable();
             $table->string('email')->nullable();
@@ -31,6 +32,7 @@ return new class extends Migration
             $table->unsignedBigInteger('system_role_id')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
+            $table->timestamp('deleted_at');
             $table->index('username', 'idx_users_username');
             $table->foreign('system_role_id')->references('id')->on('system_roles');
         });

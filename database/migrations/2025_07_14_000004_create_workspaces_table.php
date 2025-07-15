@@ -11,6 +11,8 @@ return new class extends Migration {
             $table->string('slug')->unique();
             $table->string('name');
             $table->unsignedBigInteger('owner_id')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_public')->default(false);
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamp('created_at')->useCurrent();
