@@ -7,12 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WorkspaceUser extends MultiplePrimaryKey
 {
-    use SoftDeletes;
     protected $table = 'workspace_users';
     protected $primaryKey = ['workspace_id', 'user_id'];
     public $incrementing = false;
-    protected $dates = ['deleted_at'];
-    // Relasi
 
     public function workspace()
     {

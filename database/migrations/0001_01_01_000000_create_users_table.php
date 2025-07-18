@@ -32,7 +32,7 @@ return new class extends Migration
             $table->unsignedBigInteger('system_role_id')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
-            $table->timestamp('deleted_at');
+            $table->timestamp('deleted_at')->nullable();
             $table->index('username', 'idx_users_username');
             $table->foreign('system_role_id')->references('id')->on('system_roles');
         });

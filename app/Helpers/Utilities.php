@@ -100,7 +100,7 @@ if (!function_exists('tanggal')) {
     }
 }
 
-if (!function_exists(function: 'dateTimeFormat')) {
+if (!function_exists(function: 'formatDateTime')) {
     function dateTimeFormat($dateTime = null) {
         $returnValue = null;
 

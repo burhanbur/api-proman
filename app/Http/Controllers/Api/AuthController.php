@@ -97,7 +97,7 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $expiredIn,
-            'formatted_expires_in' => Carbon::now()->addMinutes(JWTAuth::factory()->getTTL())->format('Y-m-d H:i:s'),
+            'formatted_expires_in' => Carbon::now()->addMinutes()->format('Y-m-d H:i:s'),
         ]);
 
         $response->cookie(

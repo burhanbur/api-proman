@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class TemplateStatus extends Model
+class TaskRelationType extends Model
 {
-    protected $table = 'template_status';
+    protected $table = 'task_relation_types';
     protected $primaryKey = 'id';
     public $incrementing = true;
 }

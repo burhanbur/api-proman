@@ -7,12 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Priority extends Model
 {
-    use SoftDeletes;
     protected $table = 'priorities';
     protected $primaryKey = 'id';
     public $incrementing = true;
-    protected $dates = ['deleted_at'];
-    // Relasi
 
     public function tasks()
     {

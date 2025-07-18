@@ -7,12 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TaskAssignee extends MultiplePrimaryKey
 {
-    use SoftDeletes;
     protected $table = 'task_assignees';
     protected $primaryKey = ['task_id', 'user_id'];
     public $incrementing = false;
-    protected $dates = ['deleted_at'];
-    // Relasi
 
     public function task()
     {

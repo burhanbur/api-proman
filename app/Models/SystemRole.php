@@ -7,12 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SystemRole extends Model
 {
-    use SoftDeletes;
     protected $table = 'system_roles';
     protected $primaryKey = 'id';
     public $incrementing = true;
-    protected $dates = ['deleted_at'];
-    // Relasi
 
     public function users()
     {

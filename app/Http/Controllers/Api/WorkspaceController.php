@@ -30,7 +30,7 @@ class WorkspaceController extends Controller
     public function index(Request $request) 
     {
         try {
-            $query = Workspace::with(['owner', 'createdBy', 'updatedBy', 'deletedBy', 'workspaceUsers', 'projects', 'workspaceRoles'])->whereNull('deleted_at');
+            $query = Workspace::with(['owner', 'createdBy', 'updatedBy', 'deletedBy', 'workspaceUsers', 'projects', 'workspaceRoles']);
 
             // Search functionality
             if ($search = $request->query('search')) {
@@ -77,41 +77,99 @@ class WorkspaceController extends Controller
 
             return $this->successResponse(WorkspaceResource::collection($data));
         } catch (Exception $ex) {
-            return $this->errorResponse($ex->getMessage(), $ex->getCode());
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
 
     public function show($slug) 
     {
         try {
-            $workspace = Workspace::where('slug', $slug)->whereNull('deleted_at')->first();
+            $workspace = Workspace::where('slug', $slug)->first();
             if (!$workspace) {
                 throw new Exception('Workspace not found or has been deleted.', 404);
             }
             return $this->successResponse(new WorkspaceResource($workspace));
         } catch (Exception $ex) {
-            return $this->errorResponse($ex->getMessage(), $ex->getCode());
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
 
     public function store(Request $request) 
     {
+        $user = auth()->user();
+        $rules = [
+            'name' => 'required|string|max:255',
+            'owner_id' => 'required|exists:users,id',
+            'is_active' => 'nullable|boolean',
+            'is_public' => 'nullable|boolean',
+        ];
+
+        $ruleMessages = [
+            'name.required' => 'Nama workspace wajib diisi.',
+            'owner_id.required' => 'Pemilik workspace wajib diisi.',
+            'owner_id.exists' => 'Pemilik workspace tidak ditemukan.',
+            'is_active.boolean' => 'Status aktif harus berupa boolean.',
+            'is_public.boolean' => 'Visibilitas harus berupa boolean.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $ruleMessages);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
         DB::beginTransaction();
 
         try {
-            $workspace = Workspace::create($request->all());
+            $params = $request->all();
+            $slug = Str::slug($request->name);
+
+            while (Workspace::where('slug', $slug)->exists()) {
+                $slug = $slug . '-' . Str::random(3);
+            }
+
+            $params['slug'] = $slug;
+            $params['created_by'] = $user->id;
+            $params['updated_by'] = $user->id;
+
+            $workspace = Workspace::create($params);
 
             DB::commit();
             
             return $this->successResponse(new WorkspaceResource($workspace));
         } catch (Exception $ex) {
             DB::rollBack();
-            return $this->errorResponse($ex->getMessage(), $ex->getCode());
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
 
     public function update(Request $request, $slug) 
     {
+        $user = auth()->user();
+        $rules = [
+            'name' => 'required|string|max:255',
+            'owner_id' => 'required|exists:users,id',
+            'is_active' => 'nullable|boolean',
+            'is_public' => 'nullable|boolean',
+        ];
+
+        $ruleMessages = [
+            'name.required' => 'Nama workspace wajib diisi.',
+            'owner_id.required' => 'Pemilik workspace wajib diisi.',
+            'owner_id.exists' => 'Pemilik workspace tidak ditemukan.',
+            'is_active.boolean' => 'Status aktif harus berupa boolean.',
+            'is_public.boolean' => 'Visibilitas harus berupa boolean.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $ruleMessages);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
         DB::beginTransaction();
 
         try {
@@ -122,7 +180,8 @@ class WorkspaceController extends Controller
             return $this->successResponse(new WorkspaceResource($workspace));
         } catch (Exception $ex) {
             DB::rollBack();
-            return $this->errorResponse($ex->getMessage(), $ex->getCode());
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
 
@@ -131,7 +190,7 @@ class WorkspaceController extends Controller
         DB::beginTransaction();
 
         try {
-            $workspace = Workspace::where('slug', $slug)->whereNull('deleted_at')->first();
+            $workspace = Workspace::where('slug', $slug)->first();
             if (!$workspace) {
                 throw new Exception('Workspace not found or already deleted.', 404);
             }
@@ -142,7 +201,8 @@ class WorkspaceController extends Controller
             return $this->successResponse(['message' => 'Workspace deleted successfully.']);
         } catch (Exception $ex) {
             DB::rollBack();
-            return $this->errorResponse($ex->getMessage(), $ex->getCode());
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
 }

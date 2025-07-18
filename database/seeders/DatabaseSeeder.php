@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Priority;
 use App\Models\SystemRole;
 use App\Models\TemplateStatus;
+use App\Models\TaskRelationType;
 use App\Models\User;
 
 use App\Models\WorkspaceRole;
@@ -67,6 +68,33 @@ class DatabaseSeeder extends Seeder
                 'email' => 'bayu.wicaksono@universitaspertamina.ac.id',
                 'password' => bcrypt('burhan123'),
                 'system_role_id' => 3,
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
+        ]);
+
+        TaskRelationType::insert([
+            [
+                'code' => 'depends',
+                'name' => 'Depends On',
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
+            [
+                'code' => 'related',
+                'name' => 'Related To',
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
+            [
+                'code' => 'duplicate',
+                'name' => 'Duplicate Of',
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
+            [
+                'code' => 'subtask',
+                'name' => 'Subtask Of',
                 'created_at' => now(),
                 'updated_at' => now()
             ],
@@ -141,24 +169,28 @@ class DatabaseSeeder extends Seeder
         Priority::insert([
             [
                 'name' => 'Low',
+                'weight' => 1,
                 'color' => '#28A745',
                 'created_at' => now(),
                 'updated_at' => now()
             ],
             [
                 'name' => 'Medium',
+                'weight' => 2,
                 'color' => '#FFC107',
                 'created_at' => now(),
                 'updated_at' => now()
             ],
             [
                 'name' => 'High',
+                'weight' => 3,
                 'color' => '#b42c3aff',
                 'created_at' => now(),
                 'updated_at' => now()
             ],
             [
                 'name' => 'Urgent',
+                'weight' => 4,
                 'color' => '#7d0000ff',
                 'created_at' => now(),
                 'updated_at' => now()
