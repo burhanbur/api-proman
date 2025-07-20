@@ -9,7 +9,8 @@ return new class extends Migration {
         Schema::create('attachments', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('uuid', 36)->nullable();
-            $table->unsignedBigInteger('task_id');
+            $table->string('model_type')->nullable();
+            $table->unsignedBigInteger('model_id')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->string('file_path');
@@ -20,10 +21,8 @@ return new class extends Migration {
             $table->timestamp('updated_at')->useCurrent();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->timestamp('deleted_at')->nullable();
-            $table->index('task_id', 'idx_task_id');
             $table->index('created_by', 'idx_created_by');
             $table->index('updated_by', 'idx_updated_by');
-            $table->foreign('task_id')->references('id')->on('tasks');
             $table->foreign('created_by')->references('id')->on('users');
             $table->foreign('updated_by')->references('id')->on('users');
             $table->foreign('deleted_by')->references('id')->on('users');

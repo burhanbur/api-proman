@@ -12,11 +12,25 @@ class Attachment extends Model
     protected $primaryKey = 'id';
     public $incrementing = true;
     protected $dates = ['deleted_at'];
-    // Relasi
+
+    public function workspace()
+    {
+        return $this->belongsTo(Workspace::class, 'model_id');
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class, 'model_id');
+    }
 
     public function task()
     {
-        return $this->belongsTo(Task::class, 'task_id');
+        return $this->belongsTo(Task::class, 'model_id');
+    }
+
+    public function comment()
+    {
+        return $this->belongsTo(Comment::class, 'model_id');
     }
 
     public function createdBy()

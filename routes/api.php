@@ -30,7 +30,7 @@ Route::group(['middleware' => ['cors']], function () {
             });
 
             // Workspace
-            Route::group(['prefix' => 'workspace'], function () {
+            Route::group(['prefix' => 'workspaces'], function () {
                 Route::post('/', [WorkspaceController::class, 'store']);
                 Route::get('/{slug}', [WorkspaceController::class, 'show']);
                 Route::put('/{slug}', [WorkspaceController::class, 'update']);
@@ -38,10 +38,10 @@ Route::group(['middleware' => ['cors']], function () {
             });
         });
 
-        Route::get('workspace', [WorkspaceController::class, 'index']);
+        Route::get('workspaces', [WorkspaceController::class, 'index']);
 
         // Project
-        Route::group(['prefix' => 'project'], function () {
+        Route::group(['prefix' => 'projects'], function () {
             Route::get('/', [ProjectController::class, 'index']);
             Route::post('/', [ProjectController::class, 'store']);
             Route::get('/{project}', [ProjectController::class, 'show']);
@@ -50,7 +50,7 @@ Route::group(['middleware' => ['cors']], function () {
         });
 
         // Task
-        Route::group(['prefix' => 'task'], function () {
+        Route::group(['prefix' => 'tasks'], function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::post('/', [TaskController::class, 'store']);
             Route::get('/{task}', [TaskController::class, 'show']);
@@ -59,7 +59,7 @@ Route::group(['middleware' => ['cors']], function () {
         });
 
         // Comment
-        Route::group(['prefix' => 'comment'], function () {
+        Route::group(['prefix' => 'comments'], function () {
             Route::get('/', [CommentController::class, 'index']);
             Route::post('/', [CommentController::class, 'store']);
             Route::get('/{comment}', [CommentController::class, 'show']);
@@ -68,7 +68,7 @@ Route::group(['middleware' => ['cors']], function () {
         });
 
         // Attachment
-        Route::group(['prefix' => 'attachment'], function () {
+        Route::group(['prefix' => 'attachments'], function () {
             Route::get('/', [AttachmentController::class, 'index']);
             Route::post('/', [AttachmentController::class, 'store']);
             Route::get('/{attachment}', [AttachmentController::class, 'show']);
@@ -77,7 +77,7 @@ Route::group(['middleware' => ['cors']], function () {
         });
 
         // Notification (tanpa softdelete)
-        Route::group(['prefix' => 'notification'], function () {
+        Route::group(['prefix' => 'notifications'], function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::post('/', [NotificationController::class, 'store']);
             Route::put('read-all', [NotificationController::class, 'markAllAsRead']);
