@@ -15,7 +15,7 @@ class TaskController extends Controller
 
     public function index() {
         try {
-            $tasks = Task::whereNull('deleted_at')->get();
+            $tasks = Task::all();
             return $this->successResponse(TaskResource::collection($tasks));
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
@@ -24,9 +24,9 @@ class TaskController extends Controller
 
     public function show($id) {
         try {
-            $task = Task::where('id', $id)->whereNull('deleted_at')->first();
+            $task = Task::find($id);
             if (!$task) {
-                return $this->errorResponse('Task not found or has been deleted.', 404);
+                return $this->errorResponse('Tugas tidak ditemukan.', 404);
             }
             return $this->successResponse(new TaskResource($task));
         } catch (Exception $e) {
@@ -55,12 +55,12 @@ class TaskController extends Controller
 
     public function destroy($id) {
         try {
-            $task = Task::where('id', $id)->whereNull('deleted_at')->first();
+            $task = Task::find($id);
             if (!$task) {
-                return $this->errorResponse('Task not found or already deleted.', 404);
+                return $this->errorResponse('Tugas tidak ditemukan.', 404);
             }
             $task->delete();
-            return $this->successResponse(['message' => 'Task deleted successfully.']);
+            return $this->successResponse(['message' => 'Tugas berhasil dihapus.']);
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
         }

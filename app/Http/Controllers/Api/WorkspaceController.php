@@ -29,6 +29,8 @@ class WorkspaceController extends Controller
 
     public function index(Request $request) 
     {
+        $user = auth()->user();
+
         try {
             $query = Workspace::with(['owner', 'createdBy', 'updatedBy', 'deletedBy', 'workspaceUsers', 'projects', 'workspaceRoles']);
 
@@ -52,6 +54,15 @@ class WorkspaceController extends Controller
             // Filter by visibility
             if ($status = $request->query('is_public') == 1 ? true : false) {
                 $query->where('is_public', $status);
+            }
+
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $query->where(function($q) use ($user) {
+                    $q->where('owner_id', $user->id)
+                      ->orWhereHas('workspaceUsers', function($q) use ($user) {
+                          $q->where('user_id', $user->id);
+                      });
+                });
             }
 
             $sortParams = $request->query('sort');
@@ -87,7 +98,7 @@ class WorkspaceController extends Controller
         try {
             $workspace = Workspace::where('slug', $slug)->first();
             if (!$workspace) {
-                throw new Exception('Workspace not found or has been deleted.', 404);
+                throw new Exception('Workspace tidak ditemukan.', 404);
             }
             return $this->successResponse(new WorkspaceResource($workspace));
         } catch (Exception $ex) {
@@ -192,13 +203,13 @@ class WorkspaceController extends Controller
         try {
             $workspace = Workspace::where('slug', $slug)->first();
             if (!$workspace) {
-                throw new Exception('Workspace not found or already deleted.', 404);
+                throw new Exception('Workspace tidak ditemukan atau sudah dihapus.', 404);
             }
 
             $workspace->delete();
 
             DB::commit();
-            return $this->successResponse(['message' => 'Workspace deleted successfully.']);
+            return $this->successResponse(['message' => 'Workspace berhasil dihapus.']);
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();

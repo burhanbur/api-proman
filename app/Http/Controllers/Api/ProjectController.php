@@ -15,7 +15,7 @@ class ProjectController extends Controller
 
     public function index() {
         try {
-            $projects = Project::whereNull('deleted_at')->get();
+            $projects = Project::all();
             return $this->successResponse(ProjectResource::collection($projects));
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
@@ -24,9 +24,9 @@ class ProjectController extends Controller
 
     public function show($id) {
         try {
-            $project = Project::where('id', $id)->whereNull('deleted_at')->first();
+            $project = Project::find($id);
             if (!$project) {
-                return $this->errorResponse('Project not found or has been deleted.', 404);
+                return $this->errorResponse('Proyek tidak ditemukan.', 404);
             }
             return $this->successResponse(new ProjectResource($project));
         } catch (Exception $e) {
@@ -55,12 +55,12 @@ class ProjectController extends Controller
 
     public function destroy($id) {
         try {
-            $project = Project::where('id', $id)->whereNull('deleted_at')->first();
+            $project = Project::find($id);
             if (!$project) {
-                return $this->errorResponse('Project not found or already deleted.', 404);
+                return $this->errorResponse('Proyek tidak ditemukan.', 404);
             }
             $project->delete();
-            return $this->successResponse(['message' => 'Project deleted successfully.']);
+            return $this->successResponse(['message' => 'Proyek berhasil dihapus.']);
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
         }

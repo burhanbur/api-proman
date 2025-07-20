@@ -34,6 +34,7 @@ return new class extends Migration
             $table->timestamp('updated_at')->useCurrent();
             $table->timestamp('deleted_at')->nullable();
             $table->index('username', 'idx_users_username');
+            $table->index('system_role_id', 'idx_system_role_id');
             $table->foreign('system_role_id')->references('id')->on('system_roles');
         });
 

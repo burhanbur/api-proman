@@ -8,25 +8,37 @@ use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorkspaceController;
 
-
 Route::group(['middleware' => ['cors']], function () {
-
     Route::group(['prefix' => 'auth'], function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth');
+        Route::get('me', [UserController::class, 'me'])->middleware('auth');
     });
 
     Route::group(['middleware' => ['auth']], function () {
-        // Workspace
-        Route::group(['prefix' => 'workspace'], function () {
-            Route::get('/', [WorkspaceController::class, 'index']);
-            Route::post('/', [WorkspaceController::class, 'store']);
-            Route::get('/{slug}', [WorkspaceController::class, 'show']);
-            Route::put('/{slug}', [WorkspaceController::class, 'update']);
-            Route::delete('/{slug}', [WorkspaceController::class, 'destroy']);
+        Route::group(['middleware' => ['role:admin']], function () {
+            // User Management
+            Route::group(['prefix' => 'users'], function () {
+                Route::get('/', [UserController::class, 'index']);
+                Route::post('/', [UserController::class, 'store']);
+                Route::get('/{id}', [UserController::class, 'show']);
+                Route::put('/{id}', [UserController::class, 'update']);
+                Route::delete('/{id}', [UserController::class, 'destroy']);
+            });
+
+            // Workspace
+            Route::group(['prefix' => 'workspace'], function () {
+                Route::post('/', [WorkspaceController::class, 'store']);
+                Route::get('/{slug}', [WorkspaceController::class, 'show']);
+                Route::put('/{slug}', [WorkspaceController::class, 'update']);
+                Route::delete('/{slug}', [WorkspaceController::class, 'destroy']);
+            });
         });
+
+        Route::get('workspace', [WorkspaceController::class, 'index']);
 
         // Project
         Route::group(['prefix' => 'project'], function () {

@@ -24,12 +24,6 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now()
             ],
             [
-                'code' => 'workspace_admin',
-                'name' => 'Workspace Admin',
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
                 'code' => 'user',
                 'name' => 'User',
                 'created_at' => now(),
@@ -67,7 +61,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Bayu Wicaksono',
                 'email' => 'bayu.wicaksono@universitaspertamina.ac.id',
                 'password' => bcrypt('burhan123'),
-                'system_role_id' => 3,
+                'system_role_id' => 2,
                 'created_at' => now(),
                 'updated_at' => now()
             ],
@@ -101,6 +95,12 @@ class DatabaseSeeder extends Seeder
         ]);
 
         WorkspaceRole::insert([
+            [
+                'code' => 'admin',
+                'name' => 'Administrator',
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
             [
                 'code' => 'pm',
                 'name' => 'Project Manager',
@@ -137,6 +137,12 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Review',
                 'color' => '#ff8000',
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
+            [
+                'name' => 'Revised',
+                'color' => '#7119beff',
                 'created_at' => now(),
                 'updated_at' => now()
             ],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AttachmentResource;
 use App\Models\Attachment;
+use App\Services\DocumentService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Exception;
@@ -13,20 +14,22 @@ class AttachmentController extends Controller
 {
     use ApiResponse;
 
-    public function index() {
+    public function index(Request $request) 
+    {
         try {
-            $attachments = Attachment::whereNull('deleted_at')->get();
+            $attachments = Attachment::all();
             return $this->successResponse(AttachmentResource::collection($attachments));
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
     }
 
-    public function show($id) {
+    public function show($id) 
+    {
         try {
-            $attachment = Attachment::where('id', $id)->whereNull('deleted_at')->first();
+            $attachment = Attachment::find($id);
             if (!$attachment) {
-                return $this->errorResponse('Attachment not found or has been deleted.', 404);
+                return $this->errorResponse('Lampiran tidak ditemukan.', 404);
             }
             return $this->successResponse(new AttachmentResource($attachment));
         } catch (Exception $e) {
@@ -34,7 +37,8 @@ class AttachmentController extends Controller
         }
     }
 
-    public function store(Request $request) {
+    public function store(Request $request) 
+    {
         try {
             $attachment = Attachment::create($request->all());
             return $this->successResponse(new AttachmentResource($attachment));
@@ -45,7 +49,7 @@ class AttachmentController extends Controller
 
     public function update(Request $request, $id) {
         try {
-            $attachment = Attachment::where('id', $id)->first();
+            $attachment = Attachment::find($id);
             $attachment->update($request->all());
             return $this->successResponse(new AttachmentResource($attachment));
         } catch (Exception $e) {
@@ -55,12 +59,12 @@ class AttachmentController extends Controller
 
     public function destroy($id) {
         try {
-            $attachment = Attachment::where('id', $id)->whereNull('deleted_at')->first();
+            $attachment = Attachment::find($id);
             if (!$attachment) {
-                return $this->errorResponse('Attachment not found or already deleted.', 404);
+                return $this->errorResponse('Lampiran tidak ditemukan atau sudah dihapus.', 404);
             }
             $attachment->delete();
-            return $this->successResponse(['message' => 'Attachment deleted successfully.']);
+            return $this->successResponse(['message' => 'Lampiran berhasil dihapus.']);
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
         }

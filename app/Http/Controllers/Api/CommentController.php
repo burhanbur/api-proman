@@ -15,7 +15,7 @@ class CommentController extends Controller
 
     public function index() {
         try {
-            $comments = Comment::whereNull('deleted_at')->get();
+            $comments = Comment::all();
             return $this->successResponse(CommentResource::collection($comments));
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
@@ -24,9 +24,9 @@ class CommentController extends Controller
 
     public function show($id) {
         try {
-            $comment = Comment::where('id', $id)->whereNull('deleted_at')->first();
+            $comment = Comment::find($id);
             if (!$comment) {
-                return $this->errorResponse('Comment not found or has been deleted.', 404);
+                return $this->errorResponse('Komentar tidak ditemukan.', 404);
             }
             return $this->successResponse(new CommentResource($comment));
         } catch (Exception $e) {
@@ -55,12 +55,12 @@ class CommentController extends Controller
 
     public function destroy($id) {
         try {
-            $comment = Comment::where('id', $id)->whereNull('deleted_at')->first();
+            $comment = Comment::find($id);
             if (!$comment) {
-                return $this->errorResponse('Comment not found or already deleted.', 404);
+                return $this->errorResponse('Komentar tidak ditemukan.', 404);
             }
             $comment->delete();
-            return $this->successResponse(['message' => 'Comment deleted successfully.']);
+            return $this->successResponse(['message' => 'Komentar berhasil dihapus.']);
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
         }

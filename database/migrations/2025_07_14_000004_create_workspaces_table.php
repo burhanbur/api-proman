@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->timestamp('deleted_at')->nullable();
             $table->index('owner_id', 'idx_owner_id');
             $table->index('created_by', 'idx_created_by');
+            $table->index('updated_by', 'idx_updated_by');
             $table->foreign('owner_id')->references('id')->on('users');
             $table->foreign('created_by')->references('id')->on('users');
             $table->foreign('updated_by')->references('id')->on('users');

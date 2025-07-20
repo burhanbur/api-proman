@@ -63,8 +63,8 @@ class NotificationController extends Controller
                 'uuid' => Str::uuid(),
                 'user_id' => auth()->user()->id,
                 'type' => $request->type, // info, success, warning, error
-                'title' => $request->subject,
-                'message' => $request->content,
+                'title' => $request->title,
+                'message' => $request->message,
                 'detail_url' => $request->detail_url
             ]);
 
