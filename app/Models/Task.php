@@ -58,9 +58,4 @@ class Task extends Model
     {
         return $this->hasMany(Comment::class, 'task_id');
     }
-
-    public function attachments()
-    {
-        return $this->hasMany(Attachment::class, 'task_id');
-    }
 }
