@@ -14,11 +14,6 @@ class Workspace extends Model
     protected $dates = ['deleted_at'];
     // Relasi
 
-    public function owner()
-    {
-        return $this->belongsTo(User::class, 'owner_id');
-    }
-
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

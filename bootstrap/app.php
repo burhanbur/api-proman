@@ -21,6 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'refresh' => \Tymon\JWTAuth\Http\Middleware\RefreshToken::class,
             'cors' => \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'oauth/*',
+        ]);
+
+        $middleware->encryptCookies(except: [
+           'proman_access_token'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->renderable(function (Throwable $e, Request $request) {

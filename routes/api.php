@@ -24,56 +24,55 @@ Route::group(['middleware' => ['cors']], function () {
             Route::group(['prefix' => 'users'], function () {
                 Route::get('/', [UserController::class, 'index']);
                 Route::post('/', [UserController::class, 'store']);
-                Route::get('/{id}', [UserController::class, 'show']);
-                Route::put('/{id}', [UserController::class, 'update']);
-                Route::delete('/{id}', [UserController::class, 'destroy']);
-            });
-
-            // Workspace
-            Route::group(['prefix' => 'workspaces'], function () {
-                Route::post('/', [WorkspaceController::class, 'store']);
-                Route::get('/{slug}', [WorkspaceController::class, 'show']);
-                Route::put('/{slug}', [WorkspaceController::class, 'update']);
-                Route::delete('/{slug}', [WorkspaceController::class, 'destroy']);
+                Route::get('/{uuid}', [UserController::class, 'show']);
+                Route::put('/{uuid}', [UserController::class, 'update']);
+                Route::delete('/{uuid}', [UserController::class, 'destroy']);
             });
         });
 
-        Route::get('workspaces', [WorkspaceController::class, 'index']);
+        // Workspace
+        Route::group(['prefix' => 'workspaces'], function () {
+            Route::get('/', [WorkspaceController::class, 'index']);
+            Route::post('/', [WorkspaceController::class, 'store']);
+            Route::get('/{slug}', [WorkspaceController::class, 'show']);
+            Route::put('/{slug}', [WorkspaceController::class, 'update']);
+            Route::delete('/{slug}', [WorkspaceController::class, 'destroy']);
+        });
 
         // Project
         Route::group(['prefix' => 'projects'], function () {
             Route::get('/', [ProjectController::class, 'index']);
             Route::post('/', [ProjectController::class, 'store']);
-            Route::get('/{project}', [ProjectController::class, 'show']);
-            Route::put('/{project}', [ProjectController::class, 'update']);
-            Route::delete('/{project}', [ProjectController::class, 'destroy']);
+            Route::get('/{slug}', [ProjectController::class, 'show']);
+            Route::put('/{slug}', [ProjectController::class, 'update']);
+            Route::delete('/{slug}', [ProjectController::class, 'destroy']);
         });
 
         // Task
         Route::group(['prefix' => 'tasks'], function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::post('/', [TaskController::class, 'store']);
-            Route::get('/{task}', [TaskController::class, 'show']);
-            Route::put('/{task}', [TaskController::class, 'update']);
-            Route::delete('/{task}', [TaskController::class, 'destroy']);
+            Route::get('/{uuid}', [TaskController::class, 'show']);
+            Route::put('/{uuid}', [TaskController::class, 'update']);
+            Route::delete('/{uuid}', [TaskController::class, 'destroy']);
         });
 
         // Comment
         Route::group(['prefix' => 'comments'], function () {
             Route::get('/', [CommentController::class, 'index']);
             Route::post('/', [CommentController::class, 'store']);
-            Route::get('/{comment}', [CommentController::class, 'show']);
-            Route::put('/{comment}', [CommentController::class, 'update']);
-            Route::delete('/{comment}', [CommentController::class, 'destroy']);
+            Route::get('/{uuid}', [CommentController::class, 'show']);
+            Route::put('/{uuid}', [CommentController::class, 'update']);
+            Route::delete('/{uuid}', [CommentController::class, 'destroy']);
         });
 
         // Attachment
         Route::group(['prefix' => 'attachments'], function () {
             Route::get('/', [AttachmentController::class, 'index']);
             Route::post('/', [AttachmentController::class, 'store']);
-            Route::get('/{attachment}', [AttachmentController::class, 'show']);
-            Route::put('/{attachment}', [AttachmentController::class, 'update']);
-            Route::delete('/{attachment}', [AttachmentController::class, 'destroy']);
+            Route::get('/{uuid}', [AttachmentController::class, 'show']);
+            Route::put('/{uuid}', [AttachmentController::class, 'update']);
+            Route::delete('/{uuid}', [AttachmentController::class, 'destroy']);
         });
 
         // Notification (tanpa softdelete)
@@ -81,8 +80,8 @@ Route::group(['middleware' => ['cors']], function () {
             Route::get('/', [NotificationController::class, 'index']);
             Route::post('/', [NotificationController::class, 'store']);
             Route::put('read-all', [NotificationController::class, 'markAllAsRead']);
-            Route::put('/{notification}', [NotificationController::class, 'updateReadStatus']);
-            Route::delete('/{notification}', [NotificationController::class, 'destroy']);
+            Route::put('/{uuid}', [NotificationController::class, 'updateReadStatus']);
+            Route::delete('/{uuid}', [NotificationController::class, 'destroy']);
         });
     });
 });

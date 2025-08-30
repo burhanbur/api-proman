@@ -41,11 +41,6 @@ class WorkspaceController extends Controller
                 });
             }
 
-            // Filter by owner
-            if ($ownerId = $request->query('owner_id')) {
-                $query->where('owner_id', $ownerId);
-            }
-
             // Filter by status
             if ($status = $request->query('is_active') == 1 ? true : false) {
                 $query->where('is_active', $status);
@@ -58,17 +53,14 @@ class WorkspaceController extends Controller
 
             if (!in_array($user->systemRole->code, ['admin'])) {
                 $query->where(function($q) use ($user) {
-                    $q->where('owner_id', $user->id)
-                      ->orWhereHas('workspaceUsers', function($q) use ($user) {
-                          $q->where('user_id', $user->id);
-                      });
+
                 });
             }
 
             $sortParams = $request->query('sort');
             if ($sortParams) {
                 $sorts = explode(';', $sortParams);
-                $allowedSortFields = ['created_at', 'name', 'slug', 'owner_id', 'is_active', 'is_public'];
+                $allowedSortFields = ['created_at', 'name', 'slug', 'is_active', 'is_public'];
     
                 foreach ($sorts as $sort) {
                     [$field, $direction] = explode(',', $sort) + [null, 'asc'];
@@ -112,15 +104,12 @@ class WorkspaceController extends Controller
         $user = auth()->user();
         $rules = [
             'name' => 'required|string|max:255',
-            'owner_id' => 'required|exists:users,id',
             'is_active' => 'nullable|boolean',
             'is_public' => 'nullable|boolean',
         ];
 
         $ruleMessages = [
             'name.required' => 'Nama workspace wajib diisi.',
-            'owner_id.required' => 'Pemilik workspace wajib diisi.',
-            'owner_id.exists' => 'Pemilik workspace tidak ditemukan.',
             'is_active.boolean' => 'Status aktif harus berupa boolean.',
             'is_public.boolean' => 'Visibilitas harus berupa boolean.',
         ];
@@ -162,15 +151,12 @@ class WorkspaceController extends Controller
         $user = auth()->user();
         $rules = [
             'name' => 'required|string|max:255',
-            'owner_id' => 'required|exists:users,id',
             'is_active' => 'nullable|boolean',
             'is_public' => 'nullable|boolean',
         ];
 
         $ruleMessages = [
             'name.required' => 'Nama workspace wajib diisi.',
-            'owner_id.required' => 'Pemilik workspace wajib diisi.',
-            'owner_id.exists' => 'Pemilik workspace tidak ditemukan.',
             'is_active.boolean' => 'Status aktif harus berupa boolean.',
             'is_public.boolean' => 'Visibilitas harus berupa boolean.',
         ];

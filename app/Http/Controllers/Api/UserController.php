@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserPasswordRequest;
+use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\SystemRole;
@@ -68,11 +71,11 @@ class UserController extends Controller
         }
     }
 
-    public function show($id)
+    public function show($uuid)
     {
         try {
-            $user = User::with(['systemRole', 'workspaceUsers'])
-                ->where('id', $id)
+            $user = User::with(['systemRole', 'workspaceUsers.workspace'])
+                ->where('uuid', $uuid)
                 ->first();
 
             if (!$user) {
@@ -86,39 +89,13 @@ class UserController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $rules = [
-            'username' => 'required|string|max:255|unique:users,username',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'system_role_id' => 'required|exists:system_roles,id',
-        ];
-
-        $ruleMessages = [
-            'username.required' => 'Username wajib diisi.',
-            'username.unique' => 'Username sudah digunakan.',
-            'name.required' => 'Nama wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah digunakan.',
-            'password.required' => 'Password wajib diisi.',
-            'password.min' => 'Password minimal 8 karakter.',
-            'system_role_id.required' => 'Role wajib diisi.',
-            'system_role_id.exists' => 'Role tidak ditemukan.',
-        ];
-
-        $validator = Validator::make($request->all(), $rules, $ruleMessages);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
+        $data = $request->validated();
 
         DB::beginTransaction();
 
         try {
-            $data = $request->all();
             $data['password'] = Hash::make($request->password);
             
             $user = User::create($data);
@@ -132,44 +109,19 @@ class UserController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, $uuid)
     {
-        $user = User::find($id);
+        $user = User::where('uuid', $uuid)->first();
         if (!$user) {
             return $this->errorResponse('User tidak ditemukan.', 404);
         }
 
-        $rules = [
-            'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8',
-            'system_role_id' => 'required|exists:system_roles,id',
-        ];
-
-        $ruleMessages = [
-            'username.required' => 'Username wajib diisi.',
-            'username.unique' => 'Username sudah digunakan.',
-            'name.required' => 'Nama wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah digunakan.',
-            'password.min' => 'Password minimal 8 karakter.',
-            'system_role_id.required' => 'Role wajib diisi.',
-            'system_role_id.exists' => 'Role tidak ditemukan.',
-        ];
-
-        $validator = Validator::make($request->all(), $rules, $ruleMessages);
-
-        if ($validator->fails()) {
-            return $this->errorResponse($validator->errors()->first(), 422);
-        }
+        $data = $request->validated();
 
         DB::beginTransaction();
 
         try {
-            $data = $request->all();
-            if ($request->has('password')) {
+            if ($request->has('password') && !empty($request->password)) {
                 $data['password'] = Hash::make($request->password);
             }
 
@@ -184,12 +136,12 @@ class UserController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy($uuid)
     {
         DB::beginTransaction();
 
         try {
-            $user = User::find($id);
+            $user = User::where('uuid', $uuid)->first();
             if (!$user) {
                 return $this->errorResponse('User tidak ditemukan atau sudah dihapus.', 404);
             }

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Lab404\Impersonate\Models\Impersonate;
 use Kra8\Snowflake\HasSnowflakePrimary;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -22,7 +23,15 @@ class User extends Authenticatable implements JWTSubject
      *
      * @var list<string>
      */
-    protected $fillable = [];
+    protected $fillable = [
+        'uuid',
+        'code', 
+        'username',
+        'name',
+        'email',
+        'password',
+        'system_role_id'
+    ];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -51,6 +60,17 @@ class User extends Authenticatable implements JWTSubject
     public $incrementing = true;
     protected $dates = ['deleted_at'];
 
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($user) {
+            if (empty($user->uuid)) {
+                $user->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      *
@@ -72,7 +92,7 @@ class User extends Authenticatable implements JWTSubject
     //     return [];
     // }
 
-    public function setCustomClaims(array $claims)
+    public function setCustomClaims(array $claims): void
     {
         $this->customClaims = $claims ?? null;
     }
@@ -89,9 +109,9 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(SystemRole::class, 'system_role_id');
     }
 
-    public function workspaces()
+    public function projectUsers()
     {
-        return $this->hasMany(Workspace::class, 'owner_id');
+        return $this->hasMany(ProjectUser::class, 'user_id');
     }
 
     public function workspaceUsers()

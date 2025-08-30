@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->bigIncrements('id');
             $table->string('slug')->unique();
             $table->string('name');
-            $table->unsignedBigInteger('owner_id')->nullable();
+            // $table->unsignedBigInteger('owner_id')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_public')->default(false);
             $table->unsignedBigInteger('created_by')->nullable();
@@ -19,10 +19,10 @@ return new class extends Migration {
             $table->timestamp('updated_at')->useCurrent();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->timestamp('deleted_at')->nullable();
-            $table->index('owner_id', 'idx_owner_id');
+            // $table->index('owner_id', 'idx_owner_id');
             $table->index('created_by', 'idx_created_by');
             $table->index('updated_by', 'idx_updated_by');
-            $table->foreign('owner_id')->references('id')->on('users');
+            // $table->foreign('owner_id')->references('id')->on('users');
             $table->foreign('created_by')->references('id')->on('users');
             $table->foreign('updated_by')->references('id')->on('users');
             $table->foreign('deleted_by')->references('id')->on('users');
