@@ -29,18 +29,13 @@ class Workspace extends Model
         return $this->belongsTo(User::class, 'deleted_by');
     }
 
-    public function workspaceUsers()
-    {
-        return $this->hasMany(WorkspaceUser::class, 'workspace_id');
-    }
-
     public function projects()
     {
         return $this->hasMany(Project::class, 'workspace_id');
     }
 
-    public function workspaceRoles()
+    public function workspaceUsers()
     {
-        return $this->hasMany(WorkspaceRole::class, 'workspace_id');
+        return $this->hasMany(WorkspaceUser::class, 'workspace_id');
     }
 }

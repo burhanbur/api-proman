@@ -65,14 +65,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 } else {
                     $message = $e->getMessage() ?? 'Internal Server Error';
                 }
-        
-                return response()->json([
+
+                $response = [
                     'success' => false,
                     'message' => $message,
                     'url' => request()->url(),
                     'method' => request()->method(),
                     'timestamp' => now()->toDateTimeString(),
-                ], $statusCode);
+                ];
+
+                return response()->json($response, $statusCode);
             }
             
             return null;

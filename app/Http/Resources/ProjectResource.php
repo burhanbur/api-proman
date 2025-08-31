@@ -14,15 +14,12 @@ class ProjectResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'description' => $this->description,
-            'workspace_id' => $this->workspace_id,
-            'created_by' => new UserResource($this->whenLoaded('createdBy')),
-            'updated_by' => new UserResource($this->whenLoaded('updatedBy')),
-            'deleted_by' => new UserResource($this->whenLoaded('deletedBy')),
+            'workspace' => WorkspaceResource::collection($this->whenLoaded('workspace')),
             'status' => ProjectStatusResource::collection($this->whenLoaded('projectStatus')),
             'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
+            'members' => ProjectUserResource::collection($this->whenLoaded('projectUsers')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'deleted_at' => $this->deleted_at,
         ];
     }
 }

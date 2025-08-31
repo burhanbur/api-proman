@@ -136,6 +136,37 @@ class UserController extends Controller
         }
     }
 
+    public function changeMyPassword(UpdateUserPasswordRequest $request, $uuid)
+    {
+        $user = User::where('uuid', $uuid)->first();
+        if (!$user) {
+            return $this->errorResponse('User tidak ditemukan.', 404);
+        }
+
+        $data = $request->validated();
+
+        DB::beginTransaction();
+
+        try {
+            // Optional: Verify old password if provided
+            if ($request->has('old_password') && !empty($request->old_password)) {
+                if (!Hash::check($request->old_password, $user->password)) {
+                    return $this->errorResponse('Password lama tidak sesuai.', 400);
+                }
+            }
+
+            $data['password'] = Hash::make($request->new_password);
+            $user->update(['password' => $data['password']]);
+
+            DB::commit();
+            return $this->successResponse(new UserResource($user));
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
     public function destroy($uuid)
     {
         DB::beginTransaction();

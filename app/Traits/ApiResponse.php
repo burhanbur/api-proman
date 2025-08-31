@@ -66,6 +66,12 @@ trait ApiResponse
             }
         }
 
+        // Pastikan status code valid (harus antara 100-599)
+        // Jika tidak valid, gunakan 500 sebagai default
+        if (!is_numeric($code) || $code < 100 || $code > 599) {
+            $code = 500;
+        }
+
         if (env('APP_ENV') == 'live') {
             Log::error($message, [
                 'url' => request()->url(),

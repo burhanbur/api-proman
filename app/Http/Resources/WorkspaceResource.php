@@ -16,15 +16,37 @@ class WorkspaceResource extends JsonResource
             'id' => $this->id,
             'slug' => $this->slug,
             'name' => $this->name,
-            'owner' => new UserResource($this->whenLoaded('owner')),
-            'created_by' => new UserResource($this->whenLoaded('createdBy')),
-            'updated_by' => new UserResource($this->whenLoaded('updatedBy')),
-            'deleted_by' => new UserResource($this->whenLoaded('deletedBy')),
-            'projects' => ProjectResource::collection($this->whenLoaded('projects')),
-            'members' => WorkspaceUserResource::collection($this->whenLoaded('workspaceUsers')),
+            'projects' => $this->whenLoaded('projects', function() {
+                return $this->projects->map(function($project) {
+                    return [
+                        'project_id' => $project->id,
+                        'name' => $project->name,
+                        'slug' => $project->slug,
+                        'members' => $project->projectUsers->map(function($pu) {
+                            return [
+                                'user_id' => $pu->user->id,
+                                'project_role_id' => $pu->projectRole->id,
+                                'name' => $pu->user->name,
+                                'email' => $pu->user->email,
+                                'role' => $pu->projectRole->name,
+                            ];
+                        }),
+                    ];
+                });
+            }),
+            'members' => $this->whenLoaded('workspaceUsers', function() {
+                return $this->workspaceUsers->map(function($wu) {
+                    return [
+                        'user_id' => $wu->user->id,
+                        'workspace_role_id' => $wu->workspaceRole->id,
+                        'name' => $wu->user->name,
+                        'email' => $wu->user->email,
+                        'role' => $wu->workspaceRole->name,
+                    ];
+                });
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'deleted_at' => $this->deleted_at
         ];
     }
 }

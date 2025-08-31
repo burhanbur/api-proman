@@ -25,6 +25,7 @@ Route::group(['middleware' => ['cors']], function () {
                 Route::get('/', [UserController::class, 'index']);
                 Route::post('/', [UserController::class, 'store']);
                 Route::get('/{uuid}', [UserController::class, 'show']);
+                Route::put('/{uuid}/password', [UserController::class, 'changeMyPassword']);
                 Route::put('/{uuid}', [UserController::class, 'update']);
                 Route::delete('/{uuid}', [UserController::class, 'destroy']);
             });
@@ -37,6 +38,10 @@ Route::group(['middleware' => ['cors']], function () {
             Route::get('/{slug}', [WorkspaceController::class, 'show']);
             Route::put('/{slug}', [WorkspaceController::class, 'update']);
             Route::delete('/{slug}', [WorkspaceController::class, 'destroy']);
+
+            Route::post('/{slug}/users', [WorkspaceController::class, 'storeUser']);
+            Route::put('/{slug}/users', [WorkspaceController::class, 'updateUser']);
+            Route::delete('/{slug}/users', [WorkspaceController::class, 'destroyUser']);
         });
 
         // Project
