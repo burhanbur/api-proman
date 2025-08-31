@@ -14,10 +14,25 @@ class ProjectResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'description' => $this->description,
-            'workspace' => WorkspaceResource::collection($this->whenLoaded('workspace')),
-            'status' => ProjectStatusResource::collection($this->whenLoaded('projectStatus')),
-            'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
-            'members' => ProjectUserResource::collection($this->whenLoaded('projectUsers')),
+            'workspace' => $this->workspace->name,
+            'members' => $this->whenLoaded('projectUsers') ? $this->projectUsers->map(function($pu) {
+                return [
+                    'id' => $pu->id,
+                    'user_id' => $pu->user_id,
+                    'user_name' => $pu->user->name,
+                    'user_email' => $pu->user->email,
+                    'project_role_id' => $pu->project_role_id,
+                    'project_role' => $pu->projectRole->name,
+                ];
+            }) : [],
+            'tasks' => $this->whenLoaded('tasks') ? $this->tasks->map(function($task) {
+                return [
+                    'id' => $task->id,
+                    'name' => $task->name,
+                    'description' => $task->description,
+                    'status' => $task->status,
+                ];
+            }) : [],
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

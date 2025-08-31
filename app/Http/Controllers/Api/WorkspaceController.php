@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\WorkspaceResource;
-use App\Http\Requests\Workspace\StoreWorkspaceRequest;
-use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
-use App\Http\Requests\Workspace\StoreWorkspaceUserRequest;
 use App\Http\Requests\Workspace\DeleteWorkspaceUserRequest;
+use App\Http\Requests\Workspace\StoreWorkspaceRequest;
+use App\Http\Requests\Workspace\StoreWorkspaceUserRequest;
+use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
 use App\Models\Workspace;
-use App\Models\WorkspaceRole;
 use App\Models\WorkspaceUser;
+use App\Services\MemberService;
 use App\Traits\ApiResponse;
 
 use Illuminate\Http\Request;
@@ -101,15 +101,17 @@ class WorkspaceController extends Controller
     public function show($slug) 
     {
         try {
-            $workspace = Workspace::with([
+            $data = Workspace::with([
                 'projects.projectUsers.user',
                 'projects.tasks',
                 'workspaceUsers.user'
             ])->where('slug', $slug)->first();
-            if (!$workspace) {
+
+            if (!$data) {
                 throw new Exception('Workspace tidak ditemukan.', 404);
             }
-            return $this->successResponse(new WorkspaceResource($workspace));
+
+            return $this->successResponse(new WorkspaceResource($data));
         } catch (Exception $ex) {
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());
@@ -150,9 +152,15 @@ class WorkspaceController extends Controller
                 ]);
             }
 
+            // Sync project users untuk workspace baru
+            if (count($data['members'] ?? []) > 0) {
+                $memberService = MemberService::getInstance();
+                $memberService->syncProjectUsersFromWorkspace($workspace->id);
+            }
+
             DB::commit();
-            
-            return $this->successResponse(new WorkspaceResource($workspace));
+
+            return $this->successResponse(new WorkspaceResource($workspace), 'Workspace berhasil dibuat.');
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
@@ -201,8 +209,12 @@ class WorkspaceController extends Controller
                 }
             }
 
+            // Sync project users setelah update workspace members
+            $memberService = MemberService::getInstance();
+            $memberService->syncProjectUsersFromWorkspace($workspace->id);
+
             DB::commit();
-            return $this->successResponse(new WorkspaceResource($workspace));
+            return $this->successResponse(new WorkspaceResource($workspace), 'Workspace berhasil diperbarui.');
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
@@ -257,6 +269,10 @@ class WorkspaceController extends Controller
                 'updated_by' => $user->id,
             ]);
 
+            // Sync user ke semua project di workspace
+            $memberService = MemberService::getInstance();
+            $memberService->syncUserAddedToWorkspace($workspace->id, $data['user_id'], $data['workspace_role_id']);
+
             DB::commit();
             return $this->successResponse(['message' => 'Pengguna berhasil ditambahkan ke workspace.']);
         } catch (Exception $ex) {
@@ -293,6 +309,10 @@ class WorkspaceController extends Controller
                 'updated_by' => $user->id,
             ]);
 
+            // Sync perubahan role ke project users
+            $memberService = MemberService::getInstance();
+            $memberService->syncProjectUsersFromWorkspace($workspace->id);
+
             DB::commit();
             return $this->successResponse(['message' => 'Peran pengguna di workspace berhasil diperbarui.']);
         } catch (Exception $ex) {
@@ -325,6 +345,10 @@ class WorkspaceController extends Controller
             }
 
             $workspaceUser->delete();
+
+            // Hapus user dari semua project di workspace
+            $memberService = MemberService::getInstance();
+            $memberService->syncUserRemovedFromWorkspace($workspace->id, $data['user_id']);
 
             DB::commit();
             return $this->successResponse(['message' => 'Pengguna berhasil dihapus dari workspace.']);

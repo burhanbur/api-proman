@@ -51,6 +51,9 @@ Route::group(['middleware' => ['cors']], function () {
             Route::get('/{slug}', [ProjectController::class, 'show']);
             Route::put('/{slug}', [ProjectController::class, 'update']);
             Route::delete('/{slug}', [ProjectController::class, 'destroy']);
+
+            // Project user management - hanya update role
+            Route::put('/{slug}/users', [ProjectController::class, 'updateUser']);
         });
 
         // Task

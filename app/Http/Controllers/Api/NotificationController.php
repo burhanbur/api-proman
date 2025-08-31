@@ -27,8 +27,9 @@ class NotificationController extends Controller
 
     public function index() 
     {
+        $user = auth()->user();
+
         try {
-            $user = auth()->user();
             $data = Notification::with(['user'])
                 ->where('user_id', $user->id)
                 ->orderBy('created_at', 'desc')
@@ -56,9 +57,9 @@ class NotificationController extends Controller
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        try {
-            DB::beginTransaction();
+        DB::beginTransaction();
 
+        try {
             $data = Notification::create([
                 'uuid' => Str::uuid(),
                 'user_id' => auth()->user()->id,
