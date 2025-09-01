@@ -62,8 +62,14 @@ class WorkspaceController extends Controller
             }
 
             if (!in_array($user->systemRole->code, ['admin'])) {
-                $query->whereHas('workspaceUsers', function($q) use ($user) {
-                    $q->where('user_id', $user->id);
+                // Show workspaces where the user is either a workspace member
+                // OR a member of at least one project inside the workspace
+                $query->where(function($q) use ($user) {
+                    $q->whereHas('workspaceUsers', function($q2) use ($user) {
+                        $q2->where('user_id', $user->id);
+                    })->orWhereHas('projects.projectUsers', function($q3) use ($user) {
+                        $q3->where('user_id', $user->id);
+                    });
                 });
             }
 
@@ -100,18 +106,36 @@ class WorkspaceController extends Controller
 
     public function show($slug) 
     {
+        $user = auth()->user();
+
         try {
-            $data = Workspace::with([
+            $query = Workspace::with([
                 'projects.projectUsers.user',
                 'projects.tasks',
                 'workspaceUsers.user'
-            ])->where('slug', $slug)->first();
+            ]);
+
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                // Allow access if user is workspace member OR member of any project in the workspace
+                $query->where(function($q) use ($user) {
+                    $q->whereHas('workspaceUsers', function($q2) use ($user) {
+                        $q2->where('user_id', $user->id);
+                    })->orWhereHas('projects.projectUsers', function($q3) use ($user) {
+                        $q3->where('user_id', $user->id);
+                    });
+                });
+            }
+
+            $data = $query->where('slug', $slug)->first();
 
             if (!$data) {
                 throw new Exception('Workspace tidak ditemukan.', 404);
             }
 
-            return $this->successResponse(new WorkspaceResource($data));
+            return $this->successResponse(
+                new WorkspaceResource($data),
+                'Data workspace berhasil diambil.'
+            );
         } catch (Exception $ex) {
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());
@@ -160,7 +184,10 @@ class WorkspaceController extends Controller
 
             DB::commit();
 
-            return $this->successResponse(new WorkspaceResource($workspace), 'Workspace berhasil dibuat.');
+            return $this->successResponse(
+                new WorkspaceResource($workspace), 
+                'Workspace berhasil dibuat.'
+            );
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
@@ -214,7 +241,10 @@ class WorkspaceController extends Controller
             $memberService->syncProjectUsersFromWorkspace($workspace->id);
 
             DB::commit();
-            return $this->successResponse(new WorkspaceResource($workspace), 'Workspace berhasil diperbarui.');
+            return $this->successResponse(
+                new WorkspaceResource($workspace), 
+                'Workspace berhasil diperbarui.'
+            );
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();

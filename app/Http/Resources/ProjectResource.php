@@ -14,7 +14,13 @@ class ProjectResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'description' => $this->description,
-            'workspace' => $this->workspace->name,
+            'workspace' => $this->whenLoaded('workspace', function() {
+                return [
+                    'id' => $this->workspace->id,
+                    'name' => $this->workspace->name,
+                    'slug' => $this->workspace->slug,
+                ];
+            }),
             'members' => $this->whenLoaded('projectUsers') ? $this->projectUsers->map(function($pu) {
                 return [
                     'id' => $pu->id,

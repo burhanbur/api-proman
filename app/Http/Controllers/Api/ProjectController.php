@@ -34,8 +34,10 @@ class ProjectController extends Controller
     public function index(Request $request) 
     {
         $user = auth()->user();
+
         try {
             $query = Project::with([
+                'workspace',
                 'projectUsers.user',
                 'tasks'
             ]);
@@ -97,17 +99,31 @@ class ProjectController extends Controller
 
     public function show($slug) 
     {
+        $user = auth()->user();
+
         try {
-            $data = Project::with([
+            $query = Project::with([
+                'workspace',
                 'projectUsers.user',
                 'tasks',
-            ])->where('slug', $slug)->first();
+            ]);
+
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $query->whereHas('projectUsers', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
+
+            $data = $query->where('slug', $slug)->first();
 
             if (!$data) {
                 throw new Exception('Proyek tidak ditemukan.', 404);
             }
 
-            return $this->successResponse(new ProjectResource($data));
+            return $this->successResponse(
+                new ProjectResource($data), 
+                'Data proyek berhasil diambil.'
+            );
         } catch (Exception $ex) {
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());
@@ -222,7 +238,10 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse(new ProjectResource($project), 'Proyek berhasil diperbarui.');
+            return $this->successResponse(
+                new ProjectResource($project), 
+                'Proyek berhasil diperbarui.'
+            );
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();

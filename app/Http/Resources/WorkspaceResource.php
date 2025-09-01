@@ -17,7 +17,24 @@ class WorkspaceResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'projects' => $this->whenLoaded('projects', function() {
-                return $this->projects->map(function($project) {
+                $currentUser = auth()->user();
+
+                // If current user is member of workspace, return all projects.
+                $isWorkspaceMember = $this->workspaceUsers->contains(function($wu) use ($currentUser) {
+                    return $wu->user_id === $currentUser->id;
+                });
+
+                $projects = $this->projects;
+                if (!$isWorkspaceMember) {
+                    // Filter projects to only those where the user is a project member
+                    $projects = $projects->filter(function($project) use ($currentUser) {
+                        return $project->projectUsers->contains(function($pu) use ($currentUser) {
+                            return $pu->user_id === $currentUser->id;
+                        });
+                    })->values();
+                }
+
+                return $projects->map(function($project) {
                     return [
                         'project_id' => $project->id,
                         'name' => $project->name,

@@ -12,22 +12,47 @@ class TaskResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
-            'project_id' => $this->project_id,
+            'project' => $this->whenLoaded('project', function () {
+                return [
+                    'project_id' => $this->project->id,
+                    'name' => $this->project->name,
+                    'slug' => $this->project->slug ?? null,
+                ];
+            }),
             'title' => $this->title,
             'description' => $this->description,
             'due_date' => $this->due_date,
-            'priority' => new PriorityResource($this->whenLoaded('priority')),
-            'status' => new ProjectStatusResource($this->whenLoaded('status')),
-            'created_by' => new UserResource($this->whenLoaded('createdBy')),
-            'updated_by' => new UserResource($this->whenLoaded('updatedBy')),
-            'deleted_by' => new UserResource($this->whenLoaded('deletedBy')),
-            'assignees' => TaskAssigneeResource::collection($this->whenLoaded('assignees')),
-            'comments' => CommentResource::collection($this->whenLoaded('comments')),
-            'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
-            'activity_logs' => TaskActivityLogResource::collection($this->whenLoaded('activityLogs')),
+            'priority' => $this->whenLoaded('priority', function () {
+                return [
+                    'priority_id' => $this->priority->id,
+                    'name' => $this->priority->name,
+                ];
+            }),
+            'status' => $this->whenLoaded('status', function () {
+                return [
+                    'status_id' => $this->status->id,
+                    'name' => $this->status->name,
+                ];
+            }),
+            'assignees' => $this->whenLoaded('assignees', function () {
+                return $this->assignees->map(function ($a) {
+                    return [
+                        'assign_id' => $a->id,
+                        'user_id' => $a->user_id,
+                        'name' => $a->user->name ?? null,
+                        'email' => $a->user->email ?? null,
+                        'assigned_at' => $a->created_at,
+                    ];
+                });
+            }, []),
+            'comments_count' => $this->whenLoaded('comments', function () {
+                return $this->comments->count();
+            }, 0),
+            'attachments_count' => $this->whenLoaded('attachments', function () {
+                return $this->attachments->count();
+            }, 0),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'deleted_at' => $this->deleted_at,
         ];
     }
 }

@@ -58,4 +58,9 @@ class Task extends Model
     {
         return $this->hasMany(Comment::class, 'task_id');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(Attachment::class, 'model_id')->where('model_type', 'App\Models\Task')->orderBy('created_at', 'desc');
+    }
 }
