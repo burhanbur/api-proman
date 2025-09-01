@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
+use App\Http\Requests\Project\DeleteProjectUserRequest;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\StoreProjectUserRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
@@ -253,8 +254,52 @@ class ProjectController extends Controller
         }
     }
 
-    // project user management - hanya update role saja
-    // karena project users otomatis mengikuti workspace users
+    // project user
+    public function storeUser(StoreProjectUserRequest $request, $slug)
+    {
+        $user = auth()->user();
+        $data = $request->validated();
+
+        DB::beginTransaction();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            // Cek permission
+            $memberService = MemberService::getInstance();
+            if (!$memberService->canManageProjectUser($project->id, $data['user_id'])) {
+                throw new Exception('Anda tidak memiliki permission untuk mengelola anggota proyek ini.', 403);
+            }
+
+            $existingProjectUser = ProjectUser::where('project_id', $project->id)
+                ->where('user_id', $data['user_id'])
+                ->first();
+
+            if ($existingProjectUser) {
+                throw new Exception('Pengguna sudah ada di proyek.', 400);
+            }
+
+            ProjectUser::create([
+                'project_id' => $project->id,
+                'user_id' => $data['user_id'],
+                'project_role_id' => $data['project_role_id'],
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+            ]);
+
+            DB::commit();
+            return $this->successResponse(['message' => 'Pengguna berhasil ditambahkan ke proyek.']);
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
     public function updateUser(StoreProjectUserRequest $request, $slug)
     {
         $user = auth()->user();
@@ -280,7 +325,7 @@ class ProjectController extends Controller
                 ->first();
 
             if (!$projectUser) {
-                throw new Exception('Pengguna tidak ditemukan di proyek. Pastikan pengguna sudah menjadi anggota workspace.', 404);
+                throw new Exception('Pengguna tidak ditemukan di proyek.', 404);
             }
 
             $projectUser->update([
@@ -290,6 +335,45 @@ class ProjectController extends Controller
 
             DB::commit();
             return $this->successResponse(['message' => 'Peran pengguna di proyek berhasil diperbarui.']);
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function destroyUser(DeleteProjectUserRequest $request, $slug)
+    {
+        $user = auth()->user();
+        $data = $request->validated();
+
+        DB::beginTransaction();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            // Cek permission
+            $memberService = MemberService::getInstance();
+            if (!$memberService->canManageProjectUser($project->id, $data['user_id'])) {
+                throw new Exception('Anda tidak memiliki permission untuk mengelola anggota proyek ini.', 403);
+            }
+
+            $projectUser = ProjectUser::where('project_id', $project->id)
+                ->where('user_id', $data['user_id'])
+                ->first();
+
+            if (!$projectUser) {
+                throw new Exception('Pengguna tidak ditemukan di proyek.', 404);
+            }
+
+            $projectUser->delete();
+
+            DB::commit();
+            return $this->successResponse(['message' => 'Pengguna berhasil dihapus dari proyek.']);
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();

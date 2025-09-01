@@ -8,12 +8,11 @@ use App\Models\WorkspaceRole;
 use App\Models\Project;
 use App\Models\ProjectUser;
 use App\Models\ProjectRole;
-use App\Models\User;
 
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\Collection;
+
+use Exception;
 
 class MemberService
 {
@@ -46,20 +45,30 @@ class MemberService
      */
     public function syncProjectUsersFromWorkspace($workspaceId)
     {
-        $workspace = Workspace::with(['workspaceUsers.user', 'workspaceUsers.workspaceRole'])->find($workspaceId);
+        DB::beginTransaction();
         
-        if (!$workspace) {
-            throw new \Exception('Workspace tidak ditemukan');
+        try {
+            $workspace = Workspace::with(['workspaceUsers.user', 'workspaceUsers.workspaceRole'])->find($workspaceId);
+            
+            if (!$workspace) {
+                throw new Exception('Workspace tidak ditemukan');
+            }
+
+            // Ambil semua project di workspace ini
+            $projects = Project::where('workspace_id', $workspaceId)->get();
+
+            foreach ($projects as $project) {
+                $this->syncSingleProjectUsers($project, $workspace->workspaceUsers);
+            }
+
+            DB::commit();
+            Log::info("Successfully synced project users for workspace {$workspaceId}");
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error("Failed to sync project users: " . $e->getMessage());
+            throw $e;
         }
-
-        // Ambil semua project di workspace ini
-        $projects = Project::where('workspace_id', $workspaceId)->get();
-
-        foreach ($projects as $project) {
-            $this->syncSingleProjectUsers($project, $workspace->workspaceUsers);
-        }
-
-        Log::info("Successfully synced project users for workspace {$workspaceId}");
     }
 
     /**
@@ -67,7 +76,7 @@ class MemberService
      * Strategy: Hanya sync user yang role project-nya sesuai dengan mapping dari workspace role
      * 
      * @param Project $project
-     * @param mixed $workspaceUsers
+     * @param \Illuminate\Database\Eloquent\Collection $workspaceUsers
      * @return void
      */
     private function syncSingleProjectUsers($project, $workspaceUsers)
@@ -170,33 +179,43 @@ class MemberService
      */
     public function syncUserAddedToWorkspace($workspaceId, $userId, $workspaceRoleId)
     {
-        $workspaceRole = WorkspaceRole::find($workspaceRoleId);
-        $projectRoleCode = $this->roleMapping[$workspaceRole->code] ?? 'guest';
+        DB::beginTransaction();
         
-        $projectRole = ProjectRole::where('code', $projectRoleCode)->first();
-        
-        if (!$projectRole) {
-            throw new \Exception("Project role with code '{$projectRoleCode}' not found");
-        }
-
-        // Tambahkan user ke semua project di workspace
-        $projects = Project::where('workspace_id', $workspaceId)->get();
-        
-        foreach ($projects as $project) {
-            // Cek apakah user sudah ada di project
-            $existingProjectUser = ProjectUser::where('project_id', $project->id)
-                ->where('user_id', $userId)
-                ->first();
-
-            if (!$existingProjectUser) {
-                ProjectUser::create([
-                    'project_id' => $project->id,
-                    'user_id' => $userId,
-                    'project_role_id' => $projectRole->id,
-                    'created_by' => auth()->id() ?? $userId,
-                    'updated_by' => auth()->id() ?? $userId,
-                ]);
+        try {
+            $workspaceRole = WorkspaceRole::find($workspaceRoleId);
+            $projectRoleCode = $this->roleMapping[$workspaceRole->code] ?? 'guest';
+            
+            $projectRole = ProjectRole::where('code', $projectRoleCode)->first();
+            
+            if (!$projectRole) {
+                throw new Exception("Project role with code '{$projectRoleCode}' not found");
             }
+
+            // Tambahkan user ke semua project di workspace
+            $projects = Project::where('workspace_id', $workspaceId)->get();
+            
+            foreach ($projects as $project) {
+                // Cek apakah user sudah ada di project
+                $existingProjectUser = ProjectUser::where('project_id', $project->id)
+                    ->where('user_id', $userId)
+                    ->first();
+
+                if (!$existingProjectUser) {
+                    ProjectUser::create([
+                        'project_id' => $project->id,
+                        'user_id' => $userId,
+                        'project_role_id' => $projectRole->id,
+                        'created_by' => auth()->id() ?? $userId,
+                        'updated_by' => auth()->id() ?? $userId,
+                    ]);
+                }
+            }
+
+            DB::commit();
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
     }
 
@@ -209,19 +228,29 @@ class MemberService
      */
     public function syncUserRemovedFromWorkspace($workspaceId, $userId)
     {
-        // Hapus user dari semua project di workspace 
-        // Hanya jika role-nya masih default mapping
-        $projects = Project::where('workspace_id', $workspaceId)->get();
+        DB::beginTransaction();
         
-        foreach ($projects as $project) {
-            $projectUser = ProjectUser::with('projectRole')
-                ->where('project_id', $project->id)
-                ->where('user_id', $userId)
-                ->first();
+        try {
+            // Hapus user dari semua project di workspace 
+            // Hanya jika role-nya masih default mapping
+            $projects = Project::where('workspace_id', $workspaceId)->get();
+            
+            foreach ($projects as $project) {
+                $projectUser = ProjectUser::with('projectRole')
+                    ->where('project_id', $project->id)
+                    ->where('user_id', $userId)
+                    ->first();
 
-            if ($projectUser && $this->isDefaultMappedRole($projectUser->projectRole->code ?? '', $userId, $workspaceId)) {
-                $projectUser->delete();
+                if ($projectUser && $this->isDefaultMappedRole($projectUser->projectRole->code ?? '', $userId, $workspaceId)) {
+                    $projectUser->delete();
+                }
             }
+
+            DB::commit();
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
     }
 
@@ -272,50 +301,5 @@ class MemberService
         }
 
         return false;
-    }
-
-    /**
-     * Reset project user role ke default mapping dari workspace role
-     * Berguna untuk "reset" custom assignment kembali ke mapping default
-     * 
-     * @param int $projectId
-     * @param int $userId
-     * @return void
-     */
-    public function resetProjectUserRoleToDefault($projectId, $userId)
-    {
-        $project = Project::find($projectId);
-        if (!$project) {
-            throw new \Exception('Project tidak ditemukan');
-        }
-
-        $workspaceUser = WorkspaceUser::with('workspaceRole')
-            ->where('workspace_id', $project->workspace_id)
-            ->where('user_id', $userId)
-            ->first();
-
-        if (!$workspaceUser) {
-            throw new \Exception('User tidak ditemukan di workspace');
-        }
-
-        $workspaceRoleCode = $workspaceUser->workspaceRole->code ?? '';
-        $defaultProjectRoleCode = $this->roleMapping[$workspaceRoleCode] ?? 'guest';
-        
-        $defaultProjectRole = ProjectRole::where('code', $defaultProjectRoleCode)->first();
-        
-        if (!$defaultProjectRole) {
-            throw new \Exception("Project role dengan code '{$defaultProjectRoleCode}' tidak ditemukan");
-        }
-
-        $projectUser = ProjectUser::where('project_id', $projectId)
-            ->where('user_id', $userId)
-            ->first();
-
-        if ($projectUser) {
-            $projectUser->update([
-                'project_role_id' => $defaultProjectRole->id,
-                'updated_by' => auth()->id() ?? $userId,
-            ]);
-        }
     }
 }
