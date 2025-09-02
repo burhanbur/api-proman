@@ -75,7 +75,8 @@ class TaskController extends Controller
                 $query->orderBy('created_at', 'desc');
             }
 
-            $data = $query->paginate((int) request()->query('limit', 10));
+            // $data = $query->paginate((int) request()->query('limit', 10));
+            $data = $query->get();
 
             return $this->successResponse(
                 TaskResource::collection($data), 

@@ -92,7 +92,8 @@ class WorkspaceController extends Controller
                 $query->orderBy('name');
             }
 
-            $data = $query->paginate((int) $request->query('limit', 10));
+            // $data = $query->paginate((int) $request->query('limit', 10));
+            $data = $query->get();
 
             return $this->successResponse(
                 WorkspaceResource::collection($data), 

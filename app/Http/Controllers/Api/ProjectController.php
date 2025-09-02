@@ -85,7 +85,8 @@ class ProjectController extends Controller
                 $query->orderBy('name');
             }
 
-            $data = $query->paginate((int) $request->query('limit', 10));
+            // $data = $query->paginate((int) $request->query('limit', 10));
+            $data = $query->get();
 
             return $this->successResponse(
                 ProjectResource::collection($data),
