@@ -33,6 +33,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'universitas-pertamina-workspace',
                     'name' => 'Universitas Pertamina Workspace',
+                    'description' => 'Workspace untuk aktivitas akademik dan administrasi Universitas Pertamina.',
                     'is_active' => true,
                     'is_public' => false,
                     'created_by' => 1,
@@ -43,6 +44,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'development-team-workspace',
                     'name' => 'Development Team Workspace',
+                    'description' => 'Tim pengembang yang mengerjakan proyek-proyek teknis dan produk.',
                     'is_active' => true,
                     'is_public' => true,
                     'created_by' => 1,
@@ -53,6 +55,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'research-workspace',
                     'name' => 'Research & Innovation Workspace',
+                    'description' => 'Ruang kerja untuk penelitian dan inovasi, khususnya bidang AI dan ML.',
                     'is_active' => true,
                     'is_public' => false,
                     'created_by' => 2,
@@ -63,6 +66,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'marketing-workspace',
                     'name' => 'Marketing Team Workspace',
+                    'description' => 'Tim pemasaran yang menangani kampanye digital dan komunikasi publik.',
                     'is_active' => true,
                     'is_public' => false,
                     'created_by' => 3,
@@ -73,6 +77,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'academic-workspace',
                     'name' => 'Academic Affairs Workspace',
+                    'description' => 'Koordinasi kegiatan akademik, kurikulum, dan administrasi pendidikan.',
                     'is_active' => true,
                     'is_public' => true,
                     'created_by' => 1,
@@ -83,6 +88,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'it-infrastructure-workspace',
                     'name' => 'IT Infrastructure Workspace',
+                    'description' => 'Mengelola infrastruktur dan operasi IT kampus, termasuk server dan jaringan.',
                     'is_active' => true,
                     'is_public' => false,
                     'created_by' => 2,
@@ -93,6 +99,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'student-affairs-workspace',
                     'name' => 'Student Affairs Workspace',
+                    'description' => 'Penanganan urusan kemahasiswaan seperti beasiswa dan kegiatan mahasiswa.',
                     'is_active' => true,
                     'is_public' => false,
                     'created_by' => 3,
@@ -103,6 +110,7 @@ class DummySeeder extends Seeder
                 [
                     'slug' => 'quality-assurance-workspace',
                     'name' => 'Quality Assurance Workspace',
+                    'description' => 'Tim QA yang bertanggung jawab atas audit kualitas sistem dan proses.',
                     'is_active' => false,
                     'is_public' => false,
                     'created_by' => 1,
