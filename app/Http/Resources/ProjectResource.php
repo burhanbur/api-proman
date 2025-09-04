@@ -23,7 +23,6 @@ class ProjectResource extends JsonResource
             }),
             'members' => $this->whenLoaded('projectUsers') ? $this->projectUsers->map(function($pu) {
                 return [
-                    'id' => $pu->id,
                     'user_id' => $pu->user_id,
                     'user_name' => $pu->user->name,
                     'user_email' => $pu->user->email,
@@ -34,9 +33,27 @@ class ProjectResource extends JsonResource
             'tasks' => $this->whenLoaded('tasks') ? $this->tasks->map(function($task) {
                 return [
                     'id' => $task->id,
-                    'name' => $task->name,
+                    'title' => $task->title,
                     'description' => $task->description,
-                    'status' => $task->status,
+                    'due_date' => $task->due_date,
+                    'status' => $this->whenLoaded('status') ? [
+                        'id' => $task->status->id,
+                        'name' => $task->status->name,
+                        'color' => $task->status->color,
+                    ] : null,
+                    'priority' => $this->whenLoaded('priority') ? [
+                        'id' => $task->priority->id,
+                        'name' => $task->priority->name,
+                        'color' => $task->priority->color,
+                    ] : null,
+                    'assignees' => $this->whenLoaded('assignees') ? $task->assignees->map(function($assignee) {
+                        return [
+                            'id' => $assignee->id,
+                            'name' => $assignee->name,
+                            'email' => $assignee->email,
+                            'assigned_by' => $assignee->assigned_by->name ?? null,
+                        ];
+                    }) : [],
                 ];
             }) : [],
             'created_at' => $this->created_at,

@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\Project;
 use App\Services\MemberService;
 use App\Traits\ApiResponse;
+use App\Traits\HasAuditLog;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -27,7 +28,7 @@ use Exception;
 
 class TaskController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, HasAuditLog;
 
     public function index() 
     {
@@ -143,6 +144,9 @@ class TaskController extends Controller
 
             $task = Task::create($taskData);
 
+            // Log audit untuk task yang dibuat
+            $this->auditCreated($task, "Task '{$task->title}' berhasil dibuat di project '{$project->name}'", $request);
+
             DB::commit();
             return $this->successResponse(
                 new TaskResource($task),
@@ -175,8 +179,14 @@ class TaskController extends Controller
                 }
             }
 
+            // Simpan data original untuk audit log
+            $originalData = $task->toArray();
+
             $data['updated_by'] = $user->id;
             $task->update($data);
+
+            // Log audit untuk task yang diupdate
+            $this->auditUpdated($task, $originalData, "Task '{$task->title}' berhasil diperbarui", $request);
 
             DB::commit();
             return $this->successResponse(
@@ -207,12 +217,177 @@ class TaskController extends Controller
                 }
             }
 
+            // Log audit sebelum menghapus
+            $this->auditDeleted($task, "Task '{$task->title}' berhasil dihapus", request());
+
             $task->deleted_by = $user->id;
             $task->save();
             $task->delete();
 
             DB::commit();
             return $this->successResponse(['message' => 'Tugas berhasil dihapus.']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
+            return $this->errorResponse($errMessage, $e->getCode());
+        }
+    }
+
+    public function updateStatus(Request $request, $uuid)
+    {
+        $user = auth()->user();
+        
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:todo,in-progress,review,done'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $task = Task::where('uuid', $uuid)->first();
+            if (!$task) {
+                return $this->errorResponse('Tugas tidak ditemukan.', 404);
+            }
+
+            // Permission: only project members or admin can update
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $isMember = $task->project && $task->project->projectUsers()->where('user_id', $user->id)->exists();
+                if (!$isMember) {
+                    return $this->errorResponse('Tidak punya izin untuk memperbarui status tugas ini.', 403);
+                }
+            }
+
+            // Simpan data original untuk audit log
+            $originalData = $task->toArray();
+            $oldStatus = $task->status;
+            $newStatus = $request->status;
+
+            $task->update([
+                'status' => $newStatus,
+                'updated_by' => $user->id,
+            ]);
+
+            // Log audit untuk perubahan status
+            $this->auditUpdated($task, $originalData, "Status task '{$task->title}' diubah dari '{$oldStatus}' ke '{$newStatus}'", $request);
+
+            DB::commit();
+            return $this->successResponse(
+                new TaskResource($task),
+                'Status tugas berhasil diperbarui.'
+            );
+        } catch (Exception $e) {
+            DB::rollBack();
+            $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
+            return $this->errorResponse($errMessage, $e->getCode());
+        }
+    }
+
+    public function assignTask(Request $request, $uuid)
+    {
+        $user = auth()->user();
+        
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $task = Task::where('uuid', $uuid)->first();
+            if (!$task) {
+                return $this->errorResponse('Tugas tidak ditemukan.', 404);
+            }
+
+            // Permission: only project members or admin can assign tasks
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $isMember = $task->project && $task->project->projectUsers()->where('user_id', $user->id)->exists();
+                if (!$isMember) {
+                    return $this->errorResponse('Tidak punya izin untuk menugaskan tugas ini.', 403);
+                }
+            }
+
+            // Check if user to be assigned is also a project member
+            $assigneeId = $request->user_id;
+            $isAssigneeMember = $task->project && $task->project->projectUsers()->where('user_id', $assigneeId)->exists();
+            
+            if (!$isAssigneeMember && !in_array($user->systemRole->code, ['admin'])) {
+                return $this->errorResponse('Pengguna yang akan ditugaskan harus menjadi anggota proyek.', 403);
+            }
+
+            // Check if already assigned
+            if ($task->assignees()->where('user_id', $assigneeId)->exists()) {
+                return $this->errorResponse('Pengguna sudah ditugaskan ke tugas ini.', 400);
+            }
+
+            // Assign the task
+            $task->assignees()->attach($assigneeId);
+
+            // Get assignee user info for audit log
+            $assigneeUser = \App\Models\User::find($assigneeId);
+            
+            // Log audit untuk penugasan
+            $this->auditCustom($task, 'assigned', null, null, "Menugaskan '{$assigneeUser->name}' ke task '{$task->title}'", $request);
+
+            DB::commit();
+            return $this->successResponse(
+                new TaskResource($task->load('assignees')),
+                'Tugas berhasil ditugaskan.'
+            );
+        } catch (Exception $e) {
+            DB::rollBack();
+            $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
+            return $this->errorResponse($errMessage, $e->getCode());
+        }
+    }
+
+    public function unassignTask($uuid, $userId)
+    {
+        $user = auth()->user();
+
+        DB::beginTransaction();
+        try {
+            $task = Task::where('uuid', $uuid)->first();
+            if (!$task) {
+                return $this->errorResponse('Tugas tidak ditemukan.', 404);
+            }
+
+            // Permission: only project members or admin can unassign tasks
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $isMember = $task->project && $task->project->projectUsers()->where('user_id', $user->id)->exists();
+                if (!$isMember) {
+                    return $this->errorResponse('Tidak punya izin untuk membatalkan penugasan tugas ini.', 403);
+                }
+            }
+
+            // Check if user is currently assigned
+            if (!$task->assignees()->where('user_id', $userId)->exists()) {
+                return $this->errorResponse('Pengguna tidak ditugaskan ke tugas ini.', 400);
+            }
+
+            // Get assignee user info for audit log before detaching
+            $assigneeUser = \App\Models\User::find($userId);
+            
+            if (!$assigneeUser) {
+                return $this->errorResponse('Pengguna tidak ditemukan.', 404);
+            }
+
+            // Unassign the task
+            $task->assignees()->detach($userId);
+
+            // Log audit untuk pembatalan penugasan
+            $this->auditCustom($task, 'unassigned', null, null, "Membatalkan penugasan '{$assigneeUser->name}' dari task '{$task->title}'", request());
+
+            DB::commit();
+            return $this->successResponse(
+                new TaskResource($task->load('assignees')),
+                'Penugasan tugas berhasil dibatalkan.'
+            );
         } catch (Exception $e) {
             DB::rollBack();
             $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();

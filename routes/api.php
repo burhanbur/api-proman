@@ -42,6 +42,8 @@ Route::group(['middleware' => ['cors']], function () {
             Route::post('/{slug}/users', [WorkspaceController::class, 'storeUser']);
             Route::put('/{slug}/users', [WorkspaceController::class, 'updateUser']);
             Route::delete('/{slug}/users', [WorkspaceController::class, 'destroyUser']);
+
+            Route::get('/{slug}/activities', [WorkspaceController::class, 'getActivities']);
         });
 
         // Project
@@ -55,6 +57,8 @@ Route::group(['middleware' => ['cors']], function () {
             Route::post('/{slug}/users', [ProjectController::class, 'storeUser']);
             Route::put('/{slug}/users', [ProjectController::class, 'updateUser']);
             Route::delete('/{slug}/users', [ProjectController::class, 'destroyUser']);
+
+            Route::get('/{slug}/activities', [ProjectController::class, 'getActivities']);
         });
 
         // Task
@@ -64,6 +68,10 @@ Route::group(['middleware' => ['cors']], function () {
             Route::get('/{uuid}', [TaskController::class, 'show']);
             Route::put('/{uuid}', [TaskController::class, 'update']);
             Route::delete('/{uuid}', [TaskController::class, 'destroy']);
+
+            Route::put('/{uuid}/status', [TaskController::class, 'updateStatus']);
+            Route::post('/{uuid}/assign', [TaskController::class, 'assignTask']);
+            Route::delete('/{uuid}/assign/{userId}', [TaskController::class, 'unassignTask']);
         });
 
         // Comment
