@@ -21,6 +21,20 @@ class TaskResource extends JsonResource
                     'project_id' => $this->project->id,
                     'name' => $this->project->name,
                     'slug' => $this->project->slug ?? null,
+                    // include workspace only when project->workspace is loaded or present
+                    'workspace' => $this->when(
+                        isset($this->project) && (
+                            (method_exists($this->project, 'relationLoaded') && $this->project->relationLoaded('workspace'))
+                            || isset($this->project->workspace)
+                        ),
+                        function () {
+                            return [
+                                'workspace_id' => $this->project->workspace->id,
+                                'name' => $this->project->workspace->name,
+                                'slug' => $this->project->workspace->slug ?? null,
+                            ];
+                        }
+                    ),
                 ];
             }),
             'priority' => $this->whenLoaded('priority', function () {

@@ -35,7 +35,7 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Task::with(['project', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority']);
+            $query = Task::with(['project.workspace', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority']);
 
             // Search
             if ($search = request()->query('search')) {
@@ -94,7 +94,7 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Task::with(['project', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority']);
+            $query = Task::with(['project.workspace', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority']);
 
             // Search
             if ($search = request()->query('search')) {
@@ -152,7 +152,7 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $task = Task::with(['project', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority'])
+            $task = Task::with(['project.workspace', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority'])
             ->where('uuid', $uuid)->first();
             if (!$task) {
                 return $this->errorResponse('Tugas tidak ditemukan.', 404);
