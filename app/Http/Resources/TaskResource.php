@@ -26,22 +26,24 @@ class TaskResource extends JsonResource
                 return [
                     'priority_id' => $this->priority->id,
                     'name' => $this->priority->name,
+                    'level' => $this->priority->level ?? null,
+                    'color' => $this->priority->color ?? null,
                 ];
             }),
             'status' => $this->whenLoaded('status', function () {
                 return [
                     'status_id' => $this->status->id,
                     'name' => $this->status->name,
+                    'color' => $this->status->color ?? null,
                 ];
             }),
             'assignees' => $this->whenLoaded('assignees', function () {
                 return $this->assignees->map(function ($a) {
                     return [
-                        'assign_id' => $a->id,
-                        'user_id' => $a->user_id,
-                        'name' => $a->user->name ?? null,
-                        'email' => $a->user->email ?? null,
-                        'assigned_at' => $a->created_at,
+                        'user_id' => $a->id,
+                        'name' => $a->name ?? null,
+                        'email' => $a->email ?? null,
+                        'assigned_at' => $a->pivot->created_at ?? $a->created_at,
                     ];
                 });
             }, []),

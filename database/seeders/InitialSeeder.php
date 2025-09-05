@@ -203,29 +203,29 @@ class InitialSeeder extends Seeder
             Priority::insert([
                 [
                     'name' => 'Low',
-                    'weight' => 1,
+                    'level' => 1,
                     'color' => '#28A745',
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Medium',
-                    'weight' => 2,
+                    'level' => 2,
                     'color' => '#FFC107',
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'High',
-                    'weight' => 3,
+                    'level' => 3,
                     'color' => '#b42c3aff',
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Urgent',
-                    'weight' => 4,
-                    'color' => '#7d0000ff',
+                    'level' => 4,
+                    'color' => '#7d0000',
                     'created_at' => now(),
                     'updated_at' => now()
                 ],

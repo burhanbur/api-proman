@@ -2,14 +2,20 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PriorityController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ProjectRoleController;
+use App\Http\Controllers\Api\ProjectStatusController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TemplateStatusController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorkspaceController;
+use App\Http\Controllers\Api\WorkspaceRoleController;
 
 Route::group(['middleware' => ['cors']], function () {
     Route::group(['prefix' => 'auth'], function () {
@@ -58,6 +64,7 @@ Route::group(['middleware' => ['cors']], function () {
             Route::put('/{slug}/users', [ProjectController::class, 'updateUser']);
             Route::delete('/{slug}/users', [ProjectController::class, 'destroyUser']);
 
+            Route::get('/{slug}/status', [ProjectController::class, 'getProjectStatus']);
             Route::get('/{slug}/activities', [ProjectController::class, 'getActivities']);
         });
 
@@ -65,7 +72,10 @@ Route::group(['middleware' => ['cors']], function () {
         Route::group(['prefix' => 'tasks'], function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::post('/', [TaskController::class, 'store']);
-            Route::get('/{uuid}', [TaskController::class, 'show']);
+            Route::get('/recent', [TaskController::class, 'recent']);
+
+            Route::get('/{uuid}', [TaskController::class, 'show'])
+                ->where('uuid', '[0-9a-fA-F\-]{36}');
             Route::put('/{uuid}', [TaskController::class, 'update']);
             Route::delete('/{uuid}', [TaskController::class, 'destroy']);
 
@@ -100,5 +110,52 @@ Route::group(['middleware' => ['cors']], function () {
             Route::put('/{uuid}', [NotificationController::class, 'updateReadStatus']);
             Route::delete('/{uuid}', [NotificationController::class, 'destroy']);
         });
+
+        // Project Status
+        Route::group(['prefix' => 'project-status'], function () {
+            Route::get('/', [ProjectStatusController::class, 'index']);
+            Route::post('/', [ProjectStatusController::class, 'store']);
+            Route::get('/{id}', [ProjectStatusController::class, 'show']);
+            Route::put('/{id}', [ProjectStatusController::class, 'update']);
+            Route::delete('/{id}', [ProjectStatusController::class, 'destroy']);
+        });
+
+        // Project Role
+        Route::group(['prefix' => 'project-roles'], function () {
+            Route::get('/', [ProjectRoleController::class, 'index']);
+            Route::post('/', [ProjectRoleController::class, 'store']);
+            Route::get('/{id}', [ProjectRoleController::class, 'show']);
+            Route::put('/{id}', [ProjectRoleController::class, 'update']);
+            Route::delete('/{id}', [ProjectRoleController::class, 'destroy']);
+        });
+
+        // Priority
+        Route::group(['prefix' => 'priorities'], function () {
+            Route::get('/', [PriorityController::class, 'index']);
+            Route::post('/', [PriorityController::class, 'store']);
+            Route::get('/{id}', [PriorityController::class, 'show']);
+            Route::put('/{id}', [PriorityController::class, 'update']);
+            Route::delete('/{id}', [PriorityController::class, 'destroy']);
+        });
+
+        // Template Status
+        Route::group(['prefix' => 'template-status'], function () {
+            Route::get('/', [TemplateStatusController::class, 'index']);
+            Route::post('/', [TemplateStatusController::class, 'store']);
+            Route::get('/{id}', [TemplateStatusController::class, 'show']);
+            Route::put('/{id}', [TemplateStatusController::class, 'update']);
+            Route::delete('/{id}', [TemplateStatusController::class, 'destroy']);
+        });
+
+        // Workspace Role
+        Route::group(['prefix' => 'workspace-roles'], function () {
+            Route::get('/', [WorkspaceRoleController::class, 'index']);
+            Route::post('/', [WorkspaceRoleController::class, 'store']);
+            Route::get('/{id}', [WorkspaceRoleController::class, 'show']);
+            Route::put('/{id}', [WorkspaceRoleController::class, 'update']);
+            Route::delete('/{id}', [WorkspaceRoleController::class, 'destroy']);
+        });
+
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
     });
 });

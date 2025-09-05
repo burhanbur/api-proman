@@ -46,7 +46,10 @@ class Task extends Model
 
     public function assignees()
     {
-        return $this->belongsToMany(User::class, 'task_assignees', 'task_id', 'user_id');
+        // include pivot fields and timestamps so we can access assigned_at (pivot created_at)
+        return $this->belongsToMany(User::class, 'task_assignees', 'task_id', 'user_id')
+            ->withPivot(['assigned_by'])
+            ->withTimestamps();
     }
 
     public function activityLogs()

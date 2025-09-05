@@ -622,4 +622,33 @@ class ProjectController extends Controller
             return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
+
+    public function getProjectStatus($slug)
+    {
+        $user = auth()->user();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            // Check access: only admin or project members
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $hasAccess = $project->projectUsers()->where('user_id', $user->id)->exists();
+                if (!$hasAccess) {
+                    throw new Exception('Anda tidak memiliki akses ke proyek ini.', 403);
+                }
+            }
+
+            // Ambil daftar status untuk project ini
+            $statuses = $project->projectStatuses()->orderBy('order', 'asc')->get();
+
+            return $this->successResponse($statuses, 'Daftar status proyek berhasil diambil.');
+        } catch (Exception $ex) {
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
 }

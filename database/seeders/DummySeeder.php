@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditLog;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Models\Project;
@@ -388,11 +389,13 @@ class DummySeeder extends Seeder
                     ['name' => 'Cancelled', 'color' => '#DC3545'],
                 ];
 
+                $order = 1;
                 foreach ($templateStatuses as $status) {
                     ProjectStatus::create([
                         'project_id' => $project->id,
                         'name' => $status['name'],
                         'color' => $status['color'],
+                        'order' => $order++,
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
@@ -404,12 +407,14 @@ class DummySeeder extends Seeder
             foreach ($projects as $project) {
                 // Ambil beberapa status template untuk setiap project
                 $templateStatuses = [1, 2, 3, 5]; // To Do, In Progress, Review, Done
+                $order = 1;
                 foreach ($templateStatuses as $templateStatusId) {
                     $templateStatus = \App\Models\TemplateStatus::find($templateStatusId);
                     $projectStatus = \App\Models\ProjectStatus::create([
                         'project_id' => $project->id,
                         'name' => $templateStatus->name,
                         'color' => $templateStatus->color,
+                        'order' => $order++,
                     ]);
                     $projectStatuses[] = $projectStatus;
                 }
@@ -1199,6 +1204,245 @@ class DummySeeder extends Seeder
 
             foreach ($notificationData as $notification) {
                 Notification::create($notification);
+            }
+
+            // Create dummy AuditLogs for development/testing
+            $auditData = [
+                // project created
+                [
+                    'user_id' => 1,
+                    'model_type' => Project::class,
+                    'model_id' => $projects[0]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['id' => $projects[0]->id, 'name' => $projects[0]->name]),
+                    'message' => 'Project "' . $projects[0]->name . '" dibuat oleh seeder.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(59),
+                    'updated_at' => now()->subDays(59),
+                ],
+
+                // project updated
+                [
+                    'user_id' => 2,
+                    'model_type' => Project::class,
+                    'model_id' => $projects[1]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['name' => 'Web Portal Mahasiswa (v1)']),
+                    'after' => json_encode(['name' => $projects[1]->name]),
+                    'message' => 'Nama project diubah oleh user.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(44),
+                    'updated_at' => now()->subDays(44),
+                ],
+
+                // task created
+                [
+                    'user_id' => 1,
+                    'model_type' => Task::class,
+                    'model_id' => $tasks[0]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['id' => $tasks[0]->id, 'title' => $tasks[0]->title]),
+                    'message' => 'Task "' . $tasks[0]->title . '" dibuat.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(5),
+                    'updated_at' => now()->subDays(5),
+                ],
+
+                // task updated
+                [
+                    'user_id' => 3,
+                    'model_type' => Task::class,
+                    'model_id' => $tasks[2]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['status_id' => $tasks[2]->status_id]),
+                    'after' => json_encode(['status_id' => $tasks[2]->status_id]),
+                    'message' => 'Status task diperbarui oleh user.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(2),
+                    'updated_at' => now()->subDays(2),
+                ],
+
+                // comment created
+                [
+                    'user_id' => 2,
+                    'model_type' => Comment::class,
+                    'model_id' => $tasks[0]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['comment' => 'Database schema sudah 80% selesai.']),
+                    'message' => 'Komentar ditambahkan pada task.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(2),
+                    'updated_at' => now()->subDays(2),
+                ],
+
+                // attachment uploaded
+                [
+                    'user_id' => 2,
+                    'model_type' => Attachment::class,
+                    'model_id' => $tasks[0]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['file' => 'database_schema_v1.pdf']),
+                    'message' => 'File attachment diunggah.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(3),
+                    'updated_at' => now()->subDays(3),
+                ],
+
+                // project status changed
+                [
+                    'user_id' => 1,
+                    'model_type' => ProjectStatus::class,
+                    'model_id' => $projectStatuses[0]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['name' => $projectStatuses[0]->name]),
+                    'after' => json_encode(['name' => $projectStatuses[0]->name]),
+                    'message' => 'Status project diurutkan ulang.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(58),
+                    'updated_at' => now()->subDays(58),
+                ],
+
+                // workspace created
+                [
+                    'user_id' => 1,
+                    'model_type' => Workspace::class,
+                    'model_id' => $workspaces[0]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['id' => $workspaces[0]->id, 'name' => $workspaces[0]->name]),
+                    'message' => 'Workspace dibuat oleh seeder.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(60),
+                    'updated_at' => now()->subDays(60),
+                ],
+
+                // task assigned
+                [
+                    'user_id' => 1,
+                    'model_type' => Task::class,
+                    'model_id' => $tasks[1]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['assignees' => []]),
+                    'after' => json_encode(['assignees' => [1]]),
+                    'message' => 'Task ditugaskan ke user.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(3),
+                    'updated_at' => now()->subDays(3),
+                ],
+
+                // task unassigned
+                [
+                    'user_id' => 2,
+                    'model_type' => Task::class,
+                    'model_id' => $tasks[4]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['assignees' => [2]]),
+                    'after' => json_encode(['assignees' => []]),
+                    'message' => 'Task di-unassign oleh user.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(1),
+                    'updated_at' => now()->subDays(1),
+                ],
+
+                // notification created
+                [
+                    'user_id' => 1,
+                    'model_type' => Notification::class,
+                    'model_id' => 1,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['title' => 'New Task Assignment']),
+                    'message' => 'Notifikasi dibuat untuk user.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(3),
+                    'updated_at' => now()->subDays(3),
+                ],
+
+                // more varied entries to reach ~20
+                [
+                    'user_id' => 3,
+                    'model_type' => Task::class,
+                    'model_id' => $tasks[5]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['title' => $tasks[5]->title]),
+                    'message' => 'Task baru dibuat.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(8),
+                    'updated_at' => now()->subDays(8),
+                ],
+                [
+                    'user_id' => 2,
+                    'model_type' => Project::class,
+                    'model_id' => $projects[2]->id,
+                    'action' => 'deleted',
+                    'before' => json_encode(['id' => $projects[2]->id, 'name' => $projects[2]->name]),
+                    'after' => null,
+                    'message' => 'Project dihapus (dummy).',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(29),
+                    'updated_at' => now()->subDays(29),
+                ],
+                [
+                    'user_id' => 1,
+                    'model_type' => ProjectStatus::class,
+                    'model_id' => $projectStatuses[5]->id,
+                    'action' => 'created',
+                    'before' => null,
+                    'after' => json_encode(['name' => $projectStatuses[5]->name]),
+                    'message' => 'Status project ditambahkan.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(57),
+                    'updated_at' => now()->subDays(57),
+                ],
+                [
+                    'user_id' => 3,
+                    'model_type' => Workspace::class,
+                    'model_id' => $workspaces[1]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['is_public' => false]),
+                    'after' => json_encode(['is_public' => true]),
+                    'message' => 'Pengaturan workspace diperbarui.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(59),
+                    'updated_at' => now()->subDays(59),
+                ],
+                [
+                    'user_id' => 2,
+                    'model_type' => Task::class,
+                    'model_id' => $tasks[10]->id,
+                    'action' => 'updated',
+                    'before' => json_encode(['point' => 5.0]),
+                    'after' => json_encode(['point' => 6.0]),
+                    'message' => 'Estimasi poin task diperbarui.',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'Seeder',
+                    'created_at' => now()->subDays(11),
+                    'updated_at' => now()->subDays(11),
+                ],
+            ];
+
+            foreach ($auditData as $audit) {
+                AuditLog::create($audit);
             }
 
             DB::commit();
