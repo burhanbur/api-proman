@@ -25,7 +25,7 @@ class PriorityController extends Controller
             // Search functionality
             if ($search = $request->query('search')) {
                 $query->where(function($q) use ($search) {
-                    $q->where('name', 'ilike', "%{$search}%");
+                    $q->where('name', 'like', "%{$search}%");
                 });
             }
 

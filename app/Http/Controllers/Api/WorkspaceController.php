@@ -47,8 +47,8 @@ class WorkspaceController extends Controller
             // Search functionality
             if ($search = $request->query('search')) {
                 $query->where(function($q) use ($search) {
-                    $q->where('name', 'ilike', "%{$search}%");
-                    $q->orWhere('slug', 'ilike', "%{$search}%");
+                    $q->where('name', 'like', "%{$search}%");
+                    $q->orWhere('slug', 'like', "%{$search}%");
                 });
             }
 

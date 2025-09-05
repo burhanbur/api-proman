@@ -26,7 +26,7 @@ class ProjectStatusController extends Controller
 
             // Search functionality
             if ($search = $request->query('search')) {
-                $query->where('name', 'ilike', "%{$search}%");
+                $query->where('name', 'like', "%{$search}%");
             }
 
             // Filter by project_id

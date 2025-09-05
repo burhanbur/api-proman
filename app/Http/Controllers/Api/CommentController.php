@@ -29,7 +29,7 @@ class CommentController extends Controller
 
             // Search functionality
             if ($search = $request->query('search')) {
-                $query->where('comment', 'ilike', "%{$search}%");
+                $query->where('comment', 'like', "%{$search}%");
             }
 
             // Filter by task_id

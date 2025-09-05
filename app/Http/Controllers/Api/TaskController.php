@@ -40,8 +40,8 @@ class TaskController extends Controller
             // Search
             if ($search = request()->query('search')) {
                 $query->where(function($q) use ($search) {
-                    $q->orWhere('title', 'ilike', "%{$search}%");
-                    $q->orWhere('description', 'ilike', "%{$search}%");
+                    $q->orWhere('title', 'like', "%{$search}%");
+                    $q->orWhere('description', 'like', "%{$search}%");
                 });
             }
 
@@ -99,8 +99,8 @@ class TaskController extends Controller
             // Search
             if ($search = request()->query('search')) {
                 $query->where(function($q) use ($search) {
-                    $q->orWhere('title', 'ilike', "%{$search}%");
-                    $q->orWhere('description', 'ilike', "%{$search}%");
+                    $q->orWhere('title', 'like', "%{$search}%");
+                    $q->orWhere('description', 'like', "%{$search}%");
                 });
             }
 

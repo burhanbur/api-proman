@@ -12,6 +12,10 @@ class TaskResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
+            'title' => $this->title,
+            'description' => $this->description,
+            'due_date' => $this->due_date,
+            'point' => $this->point,
             'project' => $this->whenLoaded('project', function () {
                 return [
                     'project_id' => $this->project->id,
@@ -19,9 +23,6 @@ class TaskResource extends JsonResource
                     'slug' => $this->project->slug ?? null,
                 ];
             }),
-            'title' => $this->title,
-            'description' => $this->description,
-            'due_date' => $this->due_date,
             'priority' => $this->whenLoaded('priority', function () {
                 return [
                     'priority_id' => $this->priority->id,
