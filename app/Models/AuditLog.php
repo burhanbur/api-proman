@@ -7,9 +7,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AuditLog extends Model
 {
+    protected $guarded = [];
     protected $table = 'audit_logs';
     protected $primaryKey = 'id';
     public $incrementing = true;
+    /**
+     * Cast JSON columns to arrays
+     */
+    protected $casts = [
+        'before' => 'array',
+        'after' => 'array',
+    ];
 
     public function user()
     {

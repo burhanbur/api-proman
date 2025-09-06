@@ -8,6 +8,7 @@ use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Models\Task;
 use App\Models\Project;
+use App\Models\ProjectStatus;
 use App\Services\MemberService;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
@@ -197,6 +198,7 @@ class TaskController extends Controller
             }
 
             $taskData = $data;
+            $taskData['uuid'] = (string) Str::uuid();
             $taskData['created_by'] = $user->id;
             $taskData['updated_by'] = $user->id;
 
@@ -296,7 +298,7 @@ class TaskController extends Controller
         $user = auth()->user();
         
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:todo,in-progress,review,done'
+            'status_id' => 'required|numeric|exists:project_status,id'
         ]);
 
         if ($validator->fails()) {
@@ -304,8 +306,9 @@ class TaskController extends Controller
         }
 
         DB::beginTransaction();
+
         try {
-            $task = Task::where('uuid', $uuid)->first();
+            $task = Task::with(['status'])->where('uuid', $uuid)->first();
             if (!$task) {
                 return $this->errorResponse('Tugas tidak ditemukan.', 404);
             }
@@ -320,16 +323,27 @@ class TaskController extends Controller
 
             // Simpan data original untuk audit log
             $originalData = $task->toArray();
-            $oldStatus = $task->status;
-            $newStatus = $request->status;
+
+            // Derive readable status names to avoid array/object to string conversion
+            $oldStatusObj = $task->status; // relation was eager loaded
+            $oldStatusName = null;
+            if ($oldStatusObj) {
+                $oldStatusName = $oldStatusObj->name ?? ($oldStatusObj->id ?? null);
+            }
+
+            $newStatusId = (int) $request->status_id;
+            // Try to fetch new status name for better audit message
+            $newStatusObj = ProjectStatus::find($newStatusId);
+            $newStatusName = $newStatusObj ? ($newStatusObj->name ?? $newStatusObj->id) : $newStatusId;
 
             $task->update([
-                'status' => $newStatus,
+                'status_id' => $newStatusId,
                 'updated_by' => $user->id,
             ]);
 
-            // Log audit untuk perubahan status
-            $this->auditUpdated($task, $originalData, "Status task '{$task->title}' diubah dari '{$oldStatus}' ke '{$newStatus}'", $request);
+            // Log audit untuk perubahan status (use names / ids only)
+            $message = "Status task '{$task->title}' diubah dari '" . ($oldStatusName ?? 'Unknown') . "' ke '" . ($newStatusName ?? 'Unknown') . "'";
+            $this->auditUpdated($task, $originalData, $message, $request);
 
             DB::commit();
             return $this->successResponse(

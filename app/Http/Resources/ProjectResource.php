@@ -33,6 +33,7 @@ class ProjectResource extends JsonResource
             'tasks' => $this->whenLoaded('tasks') ? $this->tasks->map(function($task) {
                 return [
                     'id' => $task->id,
+                    'uuid' => $task->uuid,
                     'title' => $task->title,
                     'description' => $task->description,
                     'due_date' => $task->due_date,
