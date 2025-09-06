@@ -48,4 +48,9 @@ class Project extends Model
     {
         return $this->hasMany(Task::class, 'project_id');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(Attachment::class, 'model_id')->where('model_type', 'App\Models\Project')->orderBy('created_at', 'desc');
+    }
 }

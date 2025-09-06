@@ -38,4 +38,9 @@ class Workspace extends Model
     {
         return $this->hasMany(WorkspaceUser::class, 'workspace_id');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(Attachment::class, 'model_id')->where('model_type', 'App\Models\Workspace')->orderBy('created_at', 'desc');
+    }
 }

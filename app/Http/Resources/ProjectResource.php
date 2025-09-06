@@ -56,6 +56,11 @@ class ProjectResource extends JsonResource
                     }) : [],
                 ];
             }) : [],
+            'member_count' => $this->whenLoaded('projectUsers') ? $this->projectUsers->count() : 0,
+            'tasks_count' => $this->whenLoaded('tasks') ? $this->tasks->count() : 0,
+            'attachments_count' => $this->whenLoaded('attachments', function () {
+                return $this->attachments->count();
+            }, 0),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

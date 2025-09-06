@@ -41,7 +41,8 @@ class WorkspaceController extends Controller
             $query = Workspace::with([
                 'projects.projectUsers.user', 
                 'projects.tasks', 
-                'workspaceUsers.user'
+                'workspaceUsers.user',
+                'attachments',
             ]);
 
             // Search functionality
@@ -114,7 +115,8 @@ class WorkspaceController extends Controller
             $query = Workspace::with([
                 'projects.projectUsers.user',
                 'projects.tasks',
-                'workspaceUsers.user'
+                'workspaceUsers.user',
+                'attachments',
             ]);
 
             if (!in_array($user->systemRole->code, ['admin'])) {

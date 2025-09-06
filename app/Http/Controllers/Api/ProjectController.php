@@ -40,7 +40,11 @@ class ProjectController extends Controller
             $query = Project::with([
                 'workspace',
                 'projectUsers.user',
-                'tasks'
+                'tasks.status',
+                'tasks.priority',
+                'tasks.assignees',
+                'projectStatuses',
+                'attachments',
             ]);
 
             // Search functionality
@@ -111,6 +115,7 @@ class ProjectController extends Controller
                 'tasks.priority',
                 'tasks.assignees',
                 'projectStatuses',
+                'attachments',
             ]);
 
             if (!in_array($user->systemRole->code, ['admin'])) {
@@ -491,7 +496,7 @@ class ProjectController extends Controller
                     ->orWhere(function($subQ) use ($project) {
                         $subQ->where('audit_logs.model_type', 'ProjectUser')
                              ->whereIn('audit_logs.model_id',
-                                $project->projectUsers()->pluck('id')
+                                $project->projectUsers()->pluck('project_id')
                              );
                     })
                     // Aktivitas comments dalam project
@@ -628,7 +633,7 @@ class ProjectController extends Controller
         $user = auth()->user();
 
         try {
-            $project = Project::where('slug', $slug)->first();
+            $project = Project::with(['projectStatuses'])->where('slug', $slug)->first();
 
             if (!$project) {
                 throw new Exception('Proyek tidak ditemukan.', 404);

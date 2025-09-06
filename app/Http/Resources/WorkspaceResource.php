@@ -63,6 +63,20 @@ class WorkspaceResource extends JsonResource
                     ];
                 });
             }),
+            'member_count' => $this->whenLoaded('workspaceUsers', function() {
+                return $this->workspaceUsers->count();
+            }, 0),
+            'project_count' => $this->whenLoaded('projects', function() {
+                return $this->projects->count();
+            }, 0),
+            'task_count' => $this->whenLoaded('projects', function() {
+                return $this->projects->sum(function($project) {
+                    return $project->tasks->count();
+                });
+            }, 0),
+            'attachments_count' => $this->whenLoaded('attachments', function () {
+                return $this->attachments->count();
+            }, 0),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

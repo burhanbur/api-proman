@@ -378,58 +378,54 @@ class DummySeeder extends Seeder
                 ProjectUser::create($projectUser);
             }
 
-            // Create Project Status for each project (based on template status)
-            foreach ($projects as $project) {
-                // Create default status for each project based on template
-                $templateStatuses = [
-                    ['name' => 'To Do', 'color' => '#0fae9cff'],
-                    ['name' => 'In Progress', 'color' => '#007BFF'],
-                    ['name' => 'Review', 'color' => '#ff8000'],
-                    ['name' => 'Done', 'color' => '#28A745'],
-                    ['name' => 'Cancelled', 'color' => '#DC3545'],
-                ];
-
-                $order = 1;
-                foreach ($templateStatuses as $status) {
-                    ProjectStatus::create([
-                        'project_id' => $project->id,
-                        'name' => $status['name'],
-                        'color' => $status['color'],
-                        'order' => $order++,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
+            // (Removed) Previously there was a hardcoded per-project creation of ProjectStatus
+            // which caused duplicate entries. Project statuses will be created below using
+            // the existing TemplateStatus records to keep a single canonical source.
 
             // Create Project Status untuk setiap project (berdasarkan template_status)
+            // This will use a selection of template statuses (kept small to match tasks mapping)
             $projectStatuses = [];
+            // Define template IDs to use (kept 4 per project to match existing task mappings)
+            $templateStatusIds = [1, 2, 3, 5]; // To Do, In Progress, Review, Done
+
             foreach ($projects as $project) {
-                // Ambil beberapa status template untuk setiap project
-                $templateStatuses = [1, 2, 3, 5]; // To Do, In Progress, Review, Done
                 $order = 1;
-                foreach ($templateStatuses as $templateStatusId) {
+                foreach ($templateStatusIds as $templateStatusId) {
                     $templateStatus = \App\Models\TemplateStatus::find($templateStatusId);
+                    if (!$templateStatus) {
+                        // Skip missing template status to avoid null errors
+                        continue;
+                    }
+
                     $projectStatus = \App\Models\ProjectStatus::create([
                         'project_id' => $project->id,
                         'name' => $templateStatus->name,
                         'color' => $templateStatus->color,
                         'order' => $order++,
                     ]);
+
                     $projectStatuses[] = $projectStatus;
                 }
             }
 
             // Helper function untuk mendapatkan project status ID
-            $getProjectStatusId = function($projectIndex, $templateStatusId) use ($projectStatuses) {
-                $baseIndex = $projectIndex * 4; // Setiap project punya 4 status
-                switch($templateStatusId) {
-                    case 1: return $projectStatuses[$baseIndex]->id;     // To Do
-                    case 2: return $projectStatuses[$baseIndex + 1]->id; // In Progress  
-                    case 3: return $projectStatuses[$baseIndex + 2]->id; // Review
-                    case 5: return $projectStatuses[$baseIndex + 3]->id; // Done
-                    default: return $projectStatuses[$baseIndex]->id;    // Default To Do
+            $getProjectStatusId = function($projectIndex, $templateStatusId) use ($projectStatuses, $templateStatusIds) {
+                $perProject = count($templateStatusIds);
+                $baseIndex = $projectIndex * $perProject; // dynamic per-project count
+
+                // Find the offset of templateStatusId in the templateStatusIds array
+                $offset = array_search($templateStatusId, $templateStatusIds);
+                if ($offset === false) {
+                    $offset = 0; // default to first status
                 }
+
+                $index = $baseIndex + $offset;
+                if (!isset($projectStatuses[$index])) {
+                    // Fallback to first status of the project if index missing
+                    return $projectStatuses[$baseIndex]->id ?? null;
+                }
+
+                return $projectStatuses[$index]->id;
             };
 
             // Create 25+ Tasks across different projects  

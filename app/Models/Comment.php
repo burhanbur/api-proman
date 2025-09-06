@@ -33,4 +33,9 @@ class Comment extends Model
     {
         return $this->belongsTo(User::class, 'deleted_by');
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(Attachment::class, 'model_id')->where('model_type', 'App\Models\Comment')->orderBy('created_at', 'desc');
+    }
 }
