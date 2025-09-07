@@ -514,7 +514,7 @@ class DummySeeder extends Seeder
                     'point' => 6.0,
                     'due_date' => now()->addDays(15),
                     'priority_id' => 2, // Medium
-                    'status_id' => 4, // Done
+                    'status_id' => $getProjectStatusId(2, 5), // Done untuk project 2
                     'created_by' => 1,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(10),
@@ -528,7 +528,7 @@ class DummySeeder extends Seeder
                     'point' => 9.0,
                     'due_date' => now()->addDays(25),
                     'priority_id' => 3, // High
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(2, 2), // In Progress untuk project 2
                     'created_by' => 3,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(7),
@@ -542,7 +542,7 @@ class DummySeeder extends Seeder
                     'point' => 4.0,
                     'due_date' => now()->addDays(18),
                     'priority_id' => 2, // Medium
-                    'status_id' => 1, // To Do
+                    'status_id' => $getProjectStatusId(2, 1), // To Do untuk project 2
                     'created_by' => 1,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(4),
@@ -558,7 +558,7 @@ class DummySeeder extends Seeder
                     'point' => 8.0,
                     'due_date' => now()->addDays(8),
                     'priority_id' => 4, // Urgent
-                    'status_id' => 3, // Review
+                    'status_id' => $getProjectStatusId(3, 3), // Review untuk project 3
                     'created_by' => 3,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(12),
@@ -572,7 +572,7 @@ class DummySeeder extends Seeder
                     'point' => 6.0,
                     'due_date' => now()->addDays(16),
                     'priority_id' => 3, // High
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(3, 2), // In Progress untuk project 3
                     'created_by' => 1,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(9),
@@ -588,7 +588,7 @@ class DummySeeder extends Seeder
                     'point' => 5.0,
                     'due_date' => now()->addDays(30),
                     'priority_id' => 1, // Low
-                    'status_id' => 4, // Done
+                    'status_id' => $getProjectStatusId(4, 5), // Done untuk project 4
                     'created_by' => 2,
                     'updated_by' => 2,
                     'created_at' => now()->subDays(25),
@@ -602,7 +602,7 @@ class DummySeeder extends Seeder
                     'point' => 10.0,
                     'due_date' => now()->addDays(45),
                     'priority_id' => 3, // High
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(4, 2), // In Progress untuk project 4
                     'created_by' => 2,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(20),
@@ -618,7 +618,7 @@ class DummySeeder extends Seeder
                     'point' => 3.0,
                     'due_date' => now()->addDays(5),
                     'priority_id' => 2, // Medium
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(5, 2), // In Progress untuk project 5
                     'created_by' => 3,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(8),
@@ -632,7 +632,7 @@ class DummySeeder extends Seeder
                     'point' => 4.0,
                     'due_date' => now()->addDays(10),
                     'priority_id' => 3, // High
-                    'status_id' => 1, // To Do
+                    'status_id' => $getProjectStatusId(5, 1), // To Do untuk project 5
                     'created_by' => 1,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(5),
@@ -648,7 +648,7 @@ class DummySeeder extends Seeder
                     'point' => 5.0,
                     'due_date' => now()->addDays(14),
                     'priority_id' => 2, // Medium
-                    'status_id' => 3, // Review
+                    'status_id' => $getProjectStatusId(6, 3), // Review untuk project 6
                     'created_by' => 1,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(11),
@@ -662,7 +662,7 @@ class DummySeeder extends Seeder
                     'point' => 6.0,
                     'due_date' => now()->addDays(21),
                     'priority_id' => 3, // High
-                    'status_id' => 1, // To Do
+                    'status_id' => $getProjectStatusId(6, 1), // To Do untuk project 6
                     'created_by' => 3,
                     'updated_by' => 2,
                     'created_at' => now()->subDays(7),
@@ -678,7 +678,7 @@ class DummySeeder extends Seeder
                     'point' => 7.0,
                     'due_date' => now()->addDays(28),
                     'priority_id' => 2, // Medium
-                    'status_id' => 4, // Done
+                    'status_id' => $getProjectStatusId(7, 5), // Done untuk project 7
                     'created_by' => 1,
                     'updated_by' => 2,
                     'created_at' => now()->subDays(35),
@@ -692,7 +692,7 @@ class DummySeeder extends Seeder
                     'point' => 8.0,
                     'due_date' => now()->addDays(35),
                     'priority_id' => 3, // High
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(7, 2), // In Progress untuk project 7
                     'created_by' => 2,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(15),
@@ -708,7 +708,7 @@ class DummySeeder extends Seeder
                     'point' => 6.0,
                     'due_date' => now()->addDays(12),
                     'priority_id' => 3, // High
-                    'status_id' => 4, // Done
+                    'status_id' => $getProjectStatusId(8, 5), // Done untuk project 8
                     'created_by' => 2,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(18),
@@ -722,7 +722,7 @@ class DummySeeder extends Seeder
                     'point' => 4.0,
                     'due_date' => now()->addDays(22),
                     'priority_id' => 4, // Urgent
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(8, 2), // In Progress untuk project 8
                     'created_by' => 3,
                     'updated_by' => 2,
                     'created_at' => now()->subDays(10),
@@ -738,7 +738,7 @@ class DummySeeder extends Seeder
                     'point' => 5.0,
                     'due_date' => now()->addDays(18),
                     'priority_id' => 2, // Medium
-                    'status_id' => 3, // Review
+                    'status_id' => $getProjectStatusId(9, 3), // Review untuk project 9
                     'created_by' => 3,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(12),
@@ -752,7 +752,7 @@ class DummySeeder extends Seeder
                     'point' => 7.0,
                     'due_date' => now()->addDays(25),
                     'priority_id' => 3, // High
-                    'status_id' => 1, // To Do
+                    'status_id' => $getProjectStatusId(9, 1), // To Do untuk project 9
                     'created_by' => 1,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(8),
@@ -768,7 +768,7 @@ class DummySeeder extends Seeder
                     'point' => 3.0,
                     'due_date' => now()->addDays(6),
                     'priority_id' => 4, // Urgent
-                    'status_id' => 2, // In Progress
+                    'status_id' => $getProjectStatusId(10, 2), // In Progress untuk project 10
                     'created_by' => 1,
                     'updated_by' => 3,
                     'created_at' => now()->subDays(4),
@@ -782,7 +782,7 @@ class DummySeeder extends Seeder
                     'point' => 4.0,
                     'due_date' => now()->addDays(8),
                     'priority_id' => 4, // Urgent
-                    'status_id' => 3, // Review
+                    'status_id' => $getProjectStatusId(10, 3), // Review untuk project 10
                     'created_by' => 3,
                     'updated_by' => 1,
                     'created_at' => now()->subDays(6),

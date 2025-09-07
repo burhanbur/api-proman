@@ -55,6 +55,8 @@ class ProjectResource extends JsonResource
                             'assigned_by' => $assignee->assigned_by->name ?? null,
                         ];
                     }) : [],
+                    'attachments_count' => $this->whenLoaded('attachments') ? $task->attachments->count() : 0,
+                    'comments_count' => $this->whenLoaded('comments') ? $task->comments->count() : 0,
                 ];
             }) : [],
             'member_count' => $this->whenLoaded('projectUsers') ? $this->projectUsers->count() : 0,

@@ -20,26 +20,23 @@ class WorkspaceResource extends JsonResource
             'projects' => $this->whenLoaded('projects', function() {
                 $currentUser = auth()->user();
 
-                // If current user is member of workspace, return all projects.
-                $isWorkspaceMember = $this->workspaceUsers->contains(function($wu) use ($currentUser) {
-                    return $wu->user_id === $currentUser->id;
-                });
-
-                $projects = $this->projects;
-                if (!$isWorkspaceMember) {
-                    // Filter projects to only those where the user is a project member
-                    $projects = $projects->filter(function($project) use ($currentUser) {
-                        return $project->projectUsers->contains(function($pu) use ($currentUser) {
-                            return $pu->user_id === $currentUser->id;
-                        });
-                    })->values();
+                if (!$currentUser) {
+                    return collect();
                 }
 
-                return $projects->map(function($project) {
+                // Only return projects where the authenticated user is a member
+                $projects = $this->projects->filter(function($project) use ($currentUser) {
+                    return $project->projectUsers->contains(function($pu) use ($currentUser) {
+                        return $pu->user_id === $currentUser->id;
+                    });
+                })->values();
+
+                return $projects->map(function($project) use ($currentUser) {
                     return [
                         'project_id' => $project->id,
                         'name' => $project->name,
                         'slug' => $project->slug,
+                        // Include all project members
                         'members' => $project->projectUsers->map(function($pu) {
                             return [
                                 'user_id' => $pu->user->id,
@@ -48,7 +45,7 @@ class WorkspaceResource extends JsonResource
                                 'email' => $pu->user->email,
                                 'role' => $pu->projectRole->name,
                             ];
-                        }),
+                        })->values(),
                     ];
                 });
             }),

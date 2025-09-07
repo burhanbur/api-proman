@@ -459,39 +459,62 @@ class WorkspaceController extends Controller
             // Gabungkan berbagai aktivitas dari workspace
             $activities = collect();
 
+            // Determine project scope: admins see all, others see only projects they belong to
+            $isAdmin = in_array($user->systemRole->code, ['admin']);
+            if ($isAdmin) {
+                $projectIds = $workspace->projects()->pluck('id')->toArray();
+            } else {
+                $projectIds = $workspace->projects()
+                    ->whereHas('projectUsers', function($q) use ($user) {
+                        $q->where('user_id', $user->id);
+                    })->pluck('id')->toArray();
+
+                // If user does not belong to any project in this workspace, return empty activities
+                if (empty($projectIds)) {
+                    return $this->successResponse(collect(), 'Aktivitas workspace berhasil diambil.');
+                }
+            }
+
             // 1. Aktivitas dari audit_logs untuk entitas dalam workspace
-            $auditLogs = DB::table('audit_logs')
+            // For non-admins, only include audit logs for projects/tasks in $projectIds
+            $taskIds = DB::table('tasks')->whereIn('project_id', $projectIds)->pluck('id')->toArray();
+
+            $auditLogsQuery = DB::table('audit_logs')
                 ->join('users', 'audit_logs.user_id', '=', 'users.id')
-                ->where(function($q) use ($workspace) {
-                    // Aktivitas project dalam workspace
-                    $q->where(function($subQ) use ($workspace) {
-                        $subQ->where('audit_logs.model_type', 'Project')
-                             ->whereIn('audit_logs.model_id', 
-                                $workspace->projects()->pluck('id')
-                             );
-                    })
-                    // Aktivitas task dalam workspace
-                    ->orWhere(function($subQ) use ($workspace) {
-                        $subQ->where('audit_logs.model_type', 'Task')
-                             ->whereIn('audit_logs.model_id', 
-                                DB::table('tasks')
-                                  ->whereIn('project_id', 
-                                    $workspace->projects()->pluck('id')
-                                  )->pluck('id')
-                             );
-                    })
-                    // Aktivitas workspace itu sendiri
-                    ->orWhere(function($subQ) use ($workspace) {
-                        $subQ->where('audit_logs.model_type', 'Workspace')
-                             ->where('audit_logs.model_id', $workspace->id);
-                    });
-                })
                 ->select([
                     'audit_logs.*',
                     'users.name as user_name',
                     'users.email as user_email'
-                ])
-                ->orderBy('audit_logs.created_at', 'desc')
+                ]);
+
+            if ($isAdmin) {
+                // admin: keep original workspace-scoped logic
+                $auditLogsQuery->where(function($q) use ($workspace) {
+                    $q->where(function($subQ) use ($workspace) {
+                        $subQ->where('audit_logs.model_type', 'Project')
+                             ->whereIn('audit_logs.model_id', $workspace->projects()->pluck('id'));
+                    })->orWhere(function($subQ) use ($workspace) {
+                        $subQ->where('audit_logs.model_type', 'Task')
+                             ->whereIn('audit_logs.model_id', DB::table('tasks')->whereIn('project_id', $workspace->projects()->pluck('id'))->pluck('id'));
+                    })->orWhere(function($subQ) use ($workspace) {
+                        $subQ->where('audit_logs.model_type', 'Workspace')
+                             ->where('audit_logs.model_id', $workspace->id);
+                    });
+                });
+            } else {
+                // non-admin: restrict to project/task logs only
+                $auditLogsQuery->where(function($q) use ($projectIds, $taskIds) {
+                    $q->where(function($subQ) use ($projectIds) {
+                        $subQ->where('audit_logs.model_type', 'Project')
+                             ->whereIn('audit_logs.model_id', $projectIds);
+                    })->orWhere(function($subQ) use ($taskIds) {
+                        $subQ->where('audit_logs.model_type', 'Task')
+                             ->whereIn('audit_logs.model_id', $taskIds);
+                    });
+                });
+            }
+
+            $auditLogs = $auditLogsQuery->orderBy('audit_logs.created_at', 'desc')
                 ->limit(50)
                 ->get()
                 ->map(function($log) {
@@ -521,7 +544,7 @@ class WorkspaceController extends Controller
                 ->join('tasks', 'task_activity_logs.task_id', '=', 'tasks.id')
                 ->join('projects', 'tasks.project_id', '=', 'projects.id')
                 ->join('users', 'task_activity_logs.user_id', '=', 'users.id')
-                ->where('projects.workspace_id', $workspace->id)
+                ->whereIn('projects.id', $projectIds)
                 ->select([
                     'task_activity_logs.*',
                     'users.name as user_name',
@@ -561,7 +584,7 @@ class WorkspaceController extends Controller
                 ->join('tasks', 'comments.task_id', '=', 'tasks.id')
                 ->join('projects', 'tasks.project_id', '=', 'projects.id')
                 ->join('users', 'comments.created_by', '=', 'users.id')
-                ->where('projects.workspace_id', $workspace->id)
+                ->whereIn('projects.id', $projectIds)
                 ->whereNull('comments.deleted_at')
                 ->select([
                     'comments.*',

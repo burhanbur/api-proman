@@ -43,6 +43,8 @@ class ProjectController extends Controller
                 'tasks.status',
                 'tasks.priority',
                 'tasks.assignees',
+                'tasks.attachments',
+                'tasks.comments',
                 'projectStatuses',
                 'attachments',
             ]);
@@ -114,6 +116,8 @@ class ProjectController extends Controller
                 'tasks.status',
                 'tasks.priority',
                 'tasks.assignees',
+                'tasks.attachments',
+                'tasks.comments',
                 'projectStatuses',
                 'attachments',
             ]);
