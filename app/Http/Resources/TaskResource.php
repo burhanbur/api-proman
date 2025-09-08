@@ -62,6 +62,20 @@ class TaskResource extends JsonResource
                     ];
                 });
             }, []),
+            'attachments' => $this->whenLoaded('attachments', function () {
+                return $this->attachments->map(function ($att) {
+                    return [
+                        'attachment_id' => $att->id,
+                        'uuid' => $att->uuid,
+                        'original_name' => $att->original_name,
+                        'file_name' => $att->file_name,
+                        'file_path' => $att->file_path,
+                        'mime' => $att->mime,
+                        'size' => $att->size,
+                        'created_at' => $att->created_at,
+                    ];
+                });
+            }, []),
             'comments_count' => $this->whenLoaded('comments', function () {
                 return $this->comments->count();
             }, 0),

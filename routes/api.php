@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PriorityController;
 use App\Http\Controllers\Api\ProjectController;
@@ -97,6 +98,7 @@ Route::group(['middleware' => ['cors']], function () {
         Route::group(['prefix' => 'attachments'], function () {
             Route::get('/', [AttachmentController::class, 'index']);
             Route::post('/', [AttachmentController::class, 'store']);
+            Route::get('/{model_type}/{model_id}/{uuid}/download', [AttachmentController::class, 'download']);
             Route::get('/{uuid}', [AttachmentController::class, 'show']);
             Route::put('/{uuid}', [AttachmentController::class, 'update']);
             Route::delete('/{uuid}', [AttachmentController::class, 'destroy']);
@@ -157,5 +159,14 @@ Route::group(['middleware' => ['cors']], function () {
         });
 
         Route::get('audit-logs', [AuditLogController::class, 'index']);
+        
+        // Notes
+        Route::group(['prefix' => 'notes'], function () {
+            Route::post('/', [NoteController::class, 'store']);
+                Route::get('/', [NoteController::class, 'index']);
+                Route::get('/{id}', [NoteController::class, 'show']);
+                Route::put('/{id}', [NoteController::class, 'update']);
+                Route::delete('/{id}', [NoteController::class, 'destroy']);
+            });
     });
 });

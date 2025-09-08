@@ -1074,6 +1074,69 @@ class DummySeeder extends Seeder
                 Attachment::create($attachment);
             }
 
+            // Create Notes linked to Workspaces and Projects
+            $noteData = [
+                [
+                    'uuid' => Str::uuid(),
+                    'model_type' => Workspace::class,
+                    'model_id' => $workspaces[0]->id,
+                    'content' => 'Initial notes for Universitas Pertamina workspace.',
+                    'created_by' => 1,
+                    'updated_by' => 1,
+                    'created_at' => now()->subDays(2),
+                    'updated_at' => now()->subDays(2),
+                ],
+                [
+                    'uuid' => Str::uuid(),
+                    'model_type' => Project::class,
+                    'model_id' => $projects[0]->id,
+                    'content' => 'Notes regarding database schema and relations.',
+                    'created_by' => 2,
+                    'updated_by' => 2,
+                    'created_at' => now()->subDays(1),
+                    'updated_at' => now()->subDays(1),
+                ],
+            ];
+
+            $notes = [];
+            foreach ($noteData as $n) {
+                $notes[] = \App\Models\Note::create($n);
+            }
+
+            // Create Attachments that reference Notes (model_type -> Note)
+            $attachmentForNotes = [
+                [
+                    'uuid' => Str::uuid(),
+                    'model_type' => \App\Models\Note::class,
+                    'model_id' => $notes[0]->id,
+                    'created_by' => 1,
+                    'updated_by' => 1,
+                    'file_path' => 'attachments/notes/workspace_note_attachment.pdf',
+                    'original_filename' => 'workspace_note_attachment.pdf',
+                    'mime_type' => 'application/pdf',
+                    'file_size' => 123456,
+                    'created_at' => now()->subDays(2),
+                    'updated_at' => now()->subDays(2)
+                ],
+                [
+                    'uuid' => Str::uuid(),
+                    'model_type' => \App\Models\Note::class,
+                    'model_id' => $notes[1]->id,
+                    'created_by' => 2,
+                    'updated_by' => 2,
+                    'file_path' => 'attachments/notes/project_note_attachment.png',
+                    'original_filename' => 'project_note_attachment.png',
+                    'mime_type' => 'image/png',
+                    'file_size' => 654321,
+                    'created_at' => now()->subDays(1),
+                    'updated_at' => now()->subDays(1)
+                ],
+            ];
+
+            foreach ($attachmentForNotes as $att) {
+                Attachment::create($att);
+            }
+
             // Create Notifications for users
             $notificationData = [
                 [
