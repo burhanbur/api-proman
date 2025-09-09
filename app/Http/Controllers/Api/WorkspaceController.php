@@ -40,7 +40,11 @@ class WorkspaceController extends Controller
         try {
             $query = Workspace::with([
                 'projects.projectUsers.user', 
-                'projects.tasks', 
+                'projects.tasks.status', 
+                'projects.tasks.priority', 
+                'projects.tasks.assignees', 
+                'projects.tasks.attachments', 
+                'projects.tasks.comments', 
                 'workspaceUsers.user',
                 'attachments',
             ]);
@@ -114,7 +118,11 @@ class WorkspaceController extends Controller
         try {
             $query = Workspace::with([
                 'projects.projectUsers.user',
-                'projects.tasks',
+                'projects.tasks.status', 
+                'projects.tasks.priority', 
+                'projects.tasks.assignees', 
+                'projects.tasks.attachments', 
+                'projects.tasks.comments', 
                 'workspaceUsers.user',
                 'attachments',
             ]);

@@ -37,6 +37,8 @@ class ProjectResource extends JsonResource
                     'title' => $task->title,
                     'description' => $task->description,
                     'due_date' => $task->due_date,
+                    'point' => $task->point,
+                    'created_by' => $task->createdBy->name ?? null,
                     'status' => $this->whenLoaded('status') ? [
                         'id' => $task->status->id,
                         'name' => $task->status->name,

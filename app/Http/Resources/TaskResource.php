@@ -18,6 +18,7 @@ class TaskResource extends JsonResource
             'point' => $this->point,
             'is_completed' => $this->is_completed,
             'is_cancelled' => $this->is_cancelled,
+            'created_by' => $this->createdBy->name ?? null,
             'project' => $this->whenLoaded('project', function () {
                 return [
                     'project_id' => $this->project->id,
