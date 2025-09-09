@@ -153,48 +153,64 @@ class InitialSeeder extends Seeder
                 [
                     'name' => 'To Do',
                     'color' => '#0fae9cff',
+                    'is_completed' => false,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'In Progress',
                     'color' => '#007BFF',
+                    'is_completed' => false,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Review',
                     'color' => '#ff8000',
+                    'is_completed' => false,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Revised',
                     'color' => '#7119beff',
+                    'is_completed' => false,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
-                    'name' => 'Done',
+                    'name' => 'Completed',
                     'color' => '#28A745',
+                    'is_completed' => true,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Pending',
                     'color' => '#FFC107',
+                    'is_completed' => false,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Closed',
                     'color' => '#6C757D',
+                    'is_completed' => true,
+                    'is_cancelled' => false,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],
                 [
                     'name' => 'Cancelled',
                     'color' => '#DC3545',
+                    'is_completed' => false,
+                    'is_cancelled' => true,
                     'created_at' => now(),
                     'updated_at' => now()
                 ],

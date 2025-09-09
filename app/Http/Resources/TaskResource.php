@@ -16,6 +16,8 @@ class TaskResource extends JsonResource
             'description' => $this->description,
             'due_date' => $this->due_date,
             'point' => $this->point,
+            'is_completed' => $this->is_completed,
+            'is_cancelled' => $this->is_cancelled,
             'project' => $this->whenLoaded('project', function () {
                 return [
                     'project_id' => $this->project->id,

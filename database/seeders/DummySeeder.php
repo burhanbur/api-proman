@@ -11,6 +11,7 @@ use App\Models\ProjectStatus;
 use App\Models\Task;
 use App\Models\TaskAssignee;
 use App\Models\TaskRelation;
+use App\Models\TemplateStatus;
 use App\Models\Comment;
 use App\Models\Attachment;
 use App\Models\Notification;
@@ -391,17 +392,41 @@ class DummySeeder extends Seeder
             foreach ($projects as $project) {
                 $order = 1;
                 foreach ($templateStatusIds as $templateStatusId) {
-                    $templateStatus = \App\Models\TemplateStatus::find($templateStatusId);
+                    $templateStatus = TemplateStatus::find($templateStatusId);
                     if (!$templateStatus) {
                         // Skip missing template status to avoid null errors
                         continue;
                     }
 
-                    $projectStatus = \App\Models\ProjectStatus::create([
+                    // Determine is_completed and is_cancelled: prefer explicit fields on template,
+                    // otherwise fallback to name-based heuristics for seeding
+                    $lowerName = strtolower(trim($templateStatus->name ?? ''));
+                    $completedSynonyms = ['complete','completed','done','finish','selesai','finished'];
+                    $cancelledSynonyms = ['cancel','cancelled','canceled','batal','canceled','cancelled'];
+
+                    $isCompleted = null;
+                    if (property_exists($templateStatus, 'is_completed')) {
+                        $isCompleted = $templateStatus->is_completed;
+                    }
+                    if ($isCompleted === null) {
+                        $isCompleted = in_array($lowerName, $completedSynonyms, true);
+                    }
+
+                    $isCancelled = null;
+                    if (property_exists($templateStatus, 'is_cancelled')) {
+                        $isCancelled = $templateStatus->is_cancelled;
+                    }
+                    if ($isCancelled === null) {
+                        $isCancelled = in_array($lowerName, $cancelledSynonyms, true);
+                    }
+
+                    $projectStatus = ProjectStatus::create([
                         'project_id' => $project->id,
                         'name' => $templateStatus->name,
                         'color' => $templateStatus->color,
                         'order' => $order++,
+                        'is_completed' => $isCompleted,
+                        'is_cancelled' => $isCancelled,
                     ]);
 
                     $projectStatuses[] = $projectStatus;

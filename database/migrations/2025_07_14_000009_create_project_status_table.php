@@ -11,6 +11,8 @@ return new class extends Migration {
             $table->unsignedBigInteger('project_id');
             $table->string('name');
             $table->string('color')->nullable();
+            $table->boolean('is_completed')->default(false);
+            $table->boolean('is_cancelled')->default(false);
             $table->smallInteger('order')->default(0);
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();

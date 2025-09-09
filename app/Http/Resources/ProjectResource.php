@@ -41,6 +41,8 @@ class ProjectResource extends JsonResource
                         'id' => $task->status->id,
                         'name' => $task->status->name,
                         'color' => $task->status->color,
+                        'is_completed' => $task->status->is_completed,
+                        'is_cancelled' => $task->status->is_cancelled,
                     ] : null,
                     'priority' => $this->whenLoaded('priority') ? [
                         'id' => $task->priority->id,
@@ -59,8 +61,17 @@ class ProjectResource extends JsonResource
                     'comments_count' => $this->whenLoaded('comments') ? $task->comments->count() : 0,
                 ];
             }) : [],
-            'member_count' => $this->whenLoaded('projectUsers') ? $this->projectUsers->count() : 0,
             'tasks_count' => $this->whenLoaded('tasks') ? $this->tasks->count() : 0,
+            'tasks_completed_count' => $this->whenLoaded('tasks', function() {
+                return $this->tasks->where('status.is_completed', true)->count();
+            }, 0),
+            'tasks_incomplete_count' => $this->whenLoaded('tasks', function() {
+                return $this->tasks->where('status.is_completed', false)->count();
+            }, 0),
+            'tasks_cancelled_count' => $this->whenLoaded('tasks', function() {
+                return $this->tasks->where('status.is_cancelled', true)->count();
+            }, 0),
+            'member_count' => $this->whenLoaded('projectUsers') ? $this->projectUsers->count() : 0,
             'attachments_count' => $this->whenLoaded('attachments', function () {
                 return $this->attachments->count();
             }, 0),

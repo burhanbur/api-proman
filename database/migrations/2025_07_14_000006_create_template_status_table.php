@@ -10,6 +10,8 @@ return new class extends Migration {
             $table->bigIncrements('id');
             $table->string('name');
             $table->string('color')->nullable();
+            $table->boolean('is_completed')->default(false);
+            $table->boolean('is_cancelled')->default(false);
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
         });
