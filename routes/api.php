@@ -22,7 +22,7 @@ Route::group(['middleware' => ['cors']], function () {
     Route::group(['prefix' => 'auth'], function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth');
-        Route::get('me', [UserController::class, 'me'])->middleware('auth');
+        Route::get('me', [AuthController::class, 'me'])->middleware('auth');
     });
 
     Route::group(['middleware' => ['auth']], function () {

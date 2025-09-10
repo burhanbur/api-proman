@@ -258,7 +258,13 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = auth()->user()->load(['userRoles.role', 'userRoles.application', 'userRoles.entityType']);
+        $user = auth()->user()->load([
+            'systemRole', 
+            'projectUsers.project', 
+            'projectUsers.projectRole', 
+            'workspaceUsers.workspace', 
+            'workspaceUsers.workspaceRole', 
+        ]);
 
         $payload = JWTAuth::getPayload();
         if ($payload->get('impersonated_by')) {

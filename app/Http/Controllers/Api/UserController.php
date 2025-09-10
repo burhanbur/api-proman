@@ -187,19 +187,4 @@ class UserController extends Controller
             return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
-
-    public function me()
-    {
-        try {
-            $user = auth()->user();
-            if (!$user) {
-                return $this->errorResponse('User tidak ditemukan.', 404);
-            }
-
-            return $this->successResponse(new UserResource($user));
-        } catch (Exception $ex) {
-            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
-            return $this->errorResponse($errMessage, $ex->getCode());
-        }
-    }
 }
