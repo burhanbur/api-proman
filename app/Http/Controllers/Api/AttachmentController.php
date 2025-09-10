@@ -15,6 +15,7 @@ use App\Models\Comment;
 use App\Models\Note;
 use App\Models\Workspace;
 use App\Models\Project;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class AttachmentController extends Controller
@@ -71,11 +72,21 @@ class AttachmentController extends Controller
     public function store(Request $request) 
     {
         try {
-            $request->validate([
-                'file' => 'required|file',
+            // build validation rules to accept single file or multiple files
+            $rules = [
                 'model_type' => 'required|string',
                 'model_id' => 'required|integer',
-            ]);
+            ];
+
+            $fileInput = $request->file('file');
+            if (is_array($fileInput)) {
+                $rules['file'] = 'required|array';
+                $rules['file.*'] = 'file';
+            } else {
+                $rules['file'] = 'required|file';
+            }
+
+            $request->validate($rules);
 
             $modelType = strtolower($request->input('model_type'));
             $modelId = (int) $request->input('model_id');
@@ -102,32 +113,70 @@ class AttachmentController extends Controller
                 return $this->errorResponse('Model tujuan tidak ditemukan.', 404);
             }
 
-            $file = $request->file('file');
-            $originalName = $file->getClientOriginalName();
-            $mime = $file->getClientMimeType();
-            $size = $file->getSize();
+            $files = $request->file('file');
+            if (!is_array($files)) {
+                $files = [$files];
+            }
 
-            // use DocumentService to save file
             $documentService = new DocumentService();
-            $title = pathinfo($originalName, PATHINFO_FILENAME); // get filename without extension
-            $disk = "attachments/{$folder}/{$modelId}";
-            $fileName = $documentService->saveDocs($file, $title, $disk, $modelId);
-            $path = "{$disk}/{$fileName}";
+            $created = [];
+            $savedFiles = [];
 
-            $attachment = Attachment::create([
-                'uuid' => (string) Str::uuid(),
-                'model_type' => $modelClass,
-                'model_id' => $modelId,
-                'created_by' => $request->user()->id ?? null,
-                'updated_by' => $request->user()->id ?? null,
-                'file_path' => $path,
-                'original_filename' => $originalName,
-                'mime_type' => $mime,
-                'file_size' => $size,
-            ]);
+            // ensure atomicity: if one fails, roll back all DB changes and delete saved files
+            DB::beginTransaction();
+            foreach ($files as $file) {
+                $originalName = $file->getClientOriginalName();
+                $mime = $file->getClientMimeType();
+                $size = $file->getSize();
 
-            return $this->successResponse(new AttachmentResource($attachment), 'File berhasil diupload.', 201);
+                // use DocumentService to save file
+                $title = pathinfo($originalName, PATHINFO_FILENAME); // get filename without extension
+                $disk = "attachments/{$folder}/{$modelId}";
+                $fileName = $documentService->saveDocs($file, $title, $disk, $modelId);
+                $path = "{$disk}/{$fileName}";
+
+                // track saved file so we can cleanup on failure
+                $savedFiles[] = ['fileName' => $fileName, 'disk' => $disk];
+
+                $attachment = Attachment::create([
+                    'uuid' => (string) Str::uuid(),
+                    'model_type' => $modelClass,
+                    'model_id' => $modelId,
+                    'created_by' => $request->user()->id ?? null,
+                    'updated_by' => $request->user()->id ?? null,
+                    'file_path' => $path,
+                    'original_filename' => $originalName,
+                    'mime_type' => $mime,
+                    'file_size' => $size,
+                ]);
+
+                $created[] = $attachment;
+            }
+            DB::commit();
+
+            if (count($created) === 1) {
+                return $this->successResponse(new AttachmentResource($created[0]), 'File berhasil diupload.', 201);
+            }
+
+            return $this->successResponse(AttachmentResource::collection(collect($created)), 'Files berhasil diupload.', 201);
         } catch (Exception $e) {
+            // attempt to remove any files already written to disk
+            if (!empty($savedFiles) && isset($documentService)) {
+                foreach ($savedFiles as $sf) {
+                    try {
+                        $documentService->deleteDocs($sf['fileName'], $sf['disk']);
+                    } catch (Exception $_) {
+                        // ignore deletion errors
+                    }
+                }
+            }
+
+            try {
+                DB::rollBack();
+            } catch (Exception $_) {
+                // ignore rollback failure when no transaction is active
+            }
+
             return $this->errorResponse($e->getMessage());
         }
     }

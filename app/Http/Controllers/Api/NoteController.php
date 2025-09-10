@@ -15,6 +15,7 @@ use Exception;
 class NoteController extends Controller
 {
     use ApiResponse, HasAuditLog;
+    
     public function store(Request $request)
     {
         $request->validate([
@@ -37,16 +38,19 @@ class NoteController extends Controller
 
     public function index(Request $request)
     {
+        $modelType = $request->query('model_type');
+        $modelId = $request->query('model_id');
+
+        if (!$modelType || !$modelId) {
+            return $this->errorResponse('Parameter model_type dan model_id diperlukan.', 400);
+        }
+
         try {
             $query = Note::with(['attachments', 'createdBy', 'updatedBy']);
 
-            if ($modelType = $request->query('model_type')) {
-                $query->where('model_type', $modelType);
-            }
+            $query->where('model_type', 'App\\Models\\' . $modelType);
 
-            if ($modelId = $request->query('model_id')) {
-                $query->where('model_id', (int) $modelId);
-            }
+            $query->where('model_id', (int) $modelId);
 
             $data = $query->orderBy('created_at', 'desc')->get();
             return $this->successResponse(NoteResource::collection($data), 'Daftar notes berhasil diambil.');
