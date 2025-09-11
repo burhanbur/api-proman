@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TaskRelation extends Model
 {
+    protected $guarded = [];
     protected $table = 'task_relations';
     protected $primaryKey = 'id';
     public $incrementing = true;

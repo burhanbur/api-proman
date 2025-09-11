@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Comment extends Model
 {
     use SoftDeletes;
+
+    protected $guarded = [];
     protected $table = 'comments';
     protected $primaryKey = 'id';
     public $incrementing = true;

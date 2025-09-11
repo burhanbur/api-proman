@@ -20,7 +20,7 @@ class WorkspaceRoleController extends Controller
     public function index(Request $request) 
     {
         try {
-            $query = WorkspaceRole::with(['workspaceUsers']);
+            $query = WorkspaceRole::query();
 
             // Search functionality
             if ($search = $request->query('search')) {

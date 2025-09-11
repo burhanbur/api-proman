@@ -9,7 +9,9 @@ return new class extends Migration {
         Schema::create('workspace_users', function (Blueprint $table) {
             $table->unsignedBigInteger('workspace_id');
             $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('workspace_role_id')->nullable();
+            $table->unsignedBigInteger('workspace_role_id');
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
             $table->primary(['workspace_id', 'user_id']);
@@ -18,6 +20,8 @@ return new class extends Migration {
             $table->index('workspace_role_id', 'idx_workspace_role_id');
             $table->foreign('workspace_id')->references('id')->on('workspaces');
             $table->foreign('user_id')->references('id')->on('users');
+            $table->foreign('created_by')->references('id')->on('users');
+            $table->foreign('updated_by')->references('id')->on('users');
             $table->foreign('workspace_role_id')->references('id')->on('workspace_roles');
         });
     }

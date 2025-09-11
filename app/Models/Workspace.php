@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Workspace extends Model
 {
     use SoftDeletes;
+
+    protected $guarded = [];
     protected $table = 'workspaces';
     protected $primaryKey = 'id';
     public $incrementing = true;

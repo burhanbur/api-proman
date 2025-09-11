@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TaskAssignee extends MultiplePrimaryKey
 {
+    protected $guarded = [];
     protected $table = 'task_assignees';
     protected $primaryKey = ['task_id', 'user_id'];
     public $incrementing = false;

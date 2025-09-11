@@ -88,95 +88,21 @@ class AttachmentController extends Controller
 
             $request->validate($rules);
 
-            $modelType = strtolower($request->input('model_type'));
+            $modelType = $request->input('model_type');
             $modelId = (int) $request->input('model_id');
-
-            // map short names to model class and folder name
-            $map = [
-                'task' => ['class' => Task::class, 'folder' => 'tasks'],
-                'comment' => ['class' => Comment::class, 'folder' => 'comments'],
-                'note' => ['class' => Note::class, 'folder' => 'notes'],
-                'workspace' => ['class' => Workspace::class, 'folder' => 'workspaces'],
-                'project' => ['class' => Project::class, 'folder' => 'projects'],
-            ];
-
-            if (!isset($map[$modelType])) {
-                return $this->errorResponse('Tipe model tidak didukung.', 422);
-            }
-
-            $modelClass = $map[$modelType]['class'];
-            $folder = $map[$modelType]['folder'];
-
-            // ensure the target model exists
-            $target = $modelClass::find($modelId);
-            if (!$target) {
-                return $this->errorResponse('Model tujuan tidak ditemukan.', 404);
-            }
-
-            $files = $request->file('file');
-            if (!is_array($files)) {
-                $files = [$files];
-            }
+            $userId = $request->user()->id ?? null;
 
             $documentService = new DocumentService();
-            $created = [];
-            $savedFiles = [];
+            $files = $request->file('file');
+            
+            $attachments = $documentService->saveAttachments($files, $modelType, $modelId, $userId);
 
-            // ensure atomicity: if one fails, roll back all DB changes and delete saved files
-            DB::beginTransaction();
-            foreach ($files as $file) {
-                $originalName = $file->getClientOriginalName();
-                $mime = $file->getClientMimeType();
-                $size = $file->getSize();
-
-                // use DocumentService to save file
-                $title = pathinfo($originalName, PATHINFO_FILENAME); // get filename without extension
-                $disk = "attachments/{$folder}/{$modelId}";
-                $fileName = $documentService->saveDocs($file, $title, $disk, $modelId);
-                $path = "{$disk}/{$fileName}";
-
-                // track saved file so we can cleanup on failure
-                $savedFiles[] = ['fileName' => $fileName, 'disk' => $disk];
-
-                $attachment = Attachment::create([
-                    'uuid' => (string) Str::uuid(),
-                    'model_type' => $modelClass,
-                    'model_id' => $modelId,
-                    'created_by' => $request->user()->id ?? null,
-                    'updated_by' => $request->user()->id ?? null,
-                    'file_path' => $path,
-                    'original_filename' => $originalName,
-                    'mime_type' => $mime,
-                    'file_size' => $size,
-                ]);
-
-                $created[] = $attachment;
-            }
-            DB::commit();
-
-            if (count($created) === 1) {
-                return $this->successResponse(new AttachmentResource($created[0]), 'File berhasil diupload.', 201);
+            if (count($attachments) === 1) {
+                return $this->successResponse(new AttachmentResource($attachments[0]), 'File berhasil diupload.', 201);
             }
 
-            return $this->successResponse(AttachmentResource::collection(collect($created)), 'Files berhasil diupload.', 201);
+            return $this->successResponse(AttachmentResource::collection(collect($attachments)), 'Files berhasil diupload.', 201);
         } catch (Exception $e) {
-            // attempt to remove any files already written to disk
-            if (!empty($savedFiles) && isset($documentService)) {
-                foreach ($savedFiles as $sf) {
-                    try {
-                        $documentService->deleteDocs($sf['fileName'], $sf['disk']);
-                    } catch (Exception $_) {
-                        // ignore deletion errors
-                    }
-                }
-            }
-
-            try {
-                DB::rollBack();
-            } catch (Exception $_) {
-                // ignore rollback failure when no transaction is active
-            }
-
             return $this->errorResponse($e->getMessage());
         }
     }
@@ -187,7 +113,11 @@ class AttachmentController extends Controller
             if (!$attachment) {
                 return $this->errorResponse('Lampiran tidak ditemukan.', 404);
             }
+            
+            $userId = $request->user()->id ?? null;
+            $attachment->updated_by = $userId;
             $attachment->update($request->all());
+            
             return $this->successResponse(new AttachmentResource($attachment));
         } catch (Exception $e) {
             return $this->errorResponse($e->getMessage());
@@ -202,11 +132,8 @@ class AttachmentController extends Controller
             }
 
             $userId = request()->user()->id ?? null;
-            if ($userId) {
-                $attachment->deleted_by = $userId;
-                $attachment->save();
-            }
-            $attachment->delete();
+            $documentService = new DocumentService();
+            $documentService->deleteAttachment($attachment, $userId);
 
             return $this->successResponse(['message' => 'Lampiran berhasil dihapus.']);
         } catch (Exception $e) {

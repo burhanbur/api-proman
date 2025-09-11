@@ -120,7 +120,7 @@ class AuditService
         return AuditLog::create([
             'user_id' => $user ? $user->id : null,
             'model_type' => get_class($model),
-            'model_id' => $model->id,
+            'model_id' => $model->id ?? null,
             'action' => $action,
             'before' => $before ? $this->sanitizeData($before) : null,
             'after' => $after ? $this->sanitizeData($after) : null,

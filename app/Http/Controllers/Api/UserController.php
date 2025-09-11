@@ -62,7 +62,8 @@ class UserController extends Controller
                 $query->orderBy('name');
             }
 
-            $data = $query->paginate((int) $request->query('limit', 10));
+            // $data = $query->paginate((int) $request->query('limit', 10));
+            $data = $query->get();
 
             return $this->successResponse(UserResource::collection($data));
         } catch (Exception $ex) {

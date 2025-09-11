@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Project extends Model
 {
     use SoftDeletes;
+
+    protected $guarded = [];
     protected $table = 'projects';
     protected $primaryKey = 'id';
     public $incrementing = true;

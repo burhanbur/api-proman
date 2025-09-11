@@ -30,6 +30,7 @@ class NoteController extends Controller
         $data['updated_by'] = $request->user()->id ?? null;
 
         $note = Note::create($data);
+
         // audit
         $this->auditCreated($note, "Note created", $request);
 

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProjectUser extends  MultiplePrimaryKey
 {
+    protected $guarded = [];
     protected $table = 'project_users';
     protected $primaryKey = ['project_id', 'user_id'];
     public $incrementing = false;

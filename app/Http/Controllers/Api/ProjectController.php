@@ -154,7 +154,7 @@ class ProjectController extends Controller
         try {
             $slug = Str::slug($request->name);
 
-            while (Project::where('slug', $slug)->exists()) {
+            while (Project::withTrashed()->where('slug', $slug)->exists()) {
                 $slug = $slug . '-' . Str::random(3);
             }
 

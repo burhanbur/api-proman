@@ -164,15 +164,16 @@ class WorkspaceController extends Controller
         try {
             $slug = Str::slug($request->name);
 
-            while (Workspace::where('slug', $slug)->exists()) {
+            while (Workspace::withTrashed()->where('slug', $slug)->exists()) {
                 $slug = $slug . '-' . Str::random(3);
             }
 
             $workspaceData = [];
+            $workspaceData['slug'] = $slug;
             $workspaceData['name'] = $data['name'];
+            $workspaceData['description'] = $data['description'];
             $workspaceData['is_active'] = $data['is_active'];
             $workspaceData['is_public'] = $data['is_public'];
-            $workspaceData['slug'] = $slug;
             $workspaceData['created_by'] = $user->id;
             $workspaceData['updated_by'] = $user->id;
 

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
+    protected $guarded = [];
     protected $table = 'notifications';
     protected $primaryKey = 'id';
     public $incrementing = true;

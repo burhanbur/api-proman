@@ -26,7 +26,7 @@ Route::group(['middleware' => ['cors']], function () {
     });
 
     Route::group(['middleware' => ['auth']], function () {
-        Route::group(['middleware' => ['role:admin']], function () {
+        // Route::group(['middleware' => ['role:admin']], function () {
             // User Management
             Route::group(['prefix' => 'users'], function () {
                 Route::get('/', [UserController::class, 'index']);
@@ -36,7 +36,7 @@ Route::group(['middleware' => ['cors']], function () {
                 Route::put('/{uuid}', [UserController::class, 'update']);
                 Route::delete('/{uuid}', [UserController::class, 'destroy']);
             });
-        });
+        // });
 
         // Workspace
         Route::group(['prefix' => 'workspaces'], function () {

@@ -54,7 +54,7 @@ class InitialSeeder extends Seeder
                     'uuid' => Str::uuid(),
                     'code' => '216090',
                     'username' => 'lmawati',
-                    'name' => 'Luluk Eko mawati',
+                    'name' => 'Luluk Eko Mawati',
                     'email' => 'lulukeko.mawati@universitaspertamina.ac.id',
                     'password' => bcrypt('burhan123'),
                     'system_role_id' => 2,
