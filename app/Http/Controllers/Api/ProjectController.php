@@ -10,6 +10,7 @@ use App\Http\Requests\Project\StoreProjectUserRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Project;
 use App\Models\ProjectUser;
+use App\Services\DocumentService;
 use App\Services\MemberService;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
@@ -168,6 +169,18 @@ class ProjectController extends Controller
             $projectData['created_by'] = $user->id;
             $projectData['updated_by'] = $user->id;
 
+            if ($request->hasFile('logo')) {
+                $documentService = new DocumentService();
+                $file = $request->file('logo');
+                $originalName = $file->getClientOriginalName();
+                $title = 'logo_'.pathinfo($originalName, PATHINFO_FILENAME);
+                $disk = "projects/{$slug}";
+                $fileName = $documentService->saveDocs($file, $title, $disk);
+                $path = "{$disk}/{$fileName}";
+                
+                $projectData['logo'] = $path;
+            }
+
             $project = Project::create($projectData);
 
             // Log audit untuk project yang dibuat
@@ -232,6 +245,20 @@ class ProjectController extends Controller
             $projectData['description'] = $data['description'];
             $projectData['is_active'] = $data['is_active'];
             $projectData['is_public'] = $data['is_public'];
+            $projectData['updated_by'] = $user->id;
+
+            if ($request->hasFile('logo')) {
+                $documentService = new DocumentService();
+                $file = $request->file('logo');
+                $originalName = $file->getClientOriginalName();
+                $title = 'logo_'.pathinfo($originalName, PATHINFO_FILENAME);
+                $disk = "workspaces/{$slug}";
+                $fileName = $documentService->saveDocs($file, $title, $disk);
+                $path = "{$disk}/{$fileName}";
+
+                $projectData['logo'] = $path;
+            }
+
             $project = Project::where('slug', $slug)->first();
 
             if (!$project) {

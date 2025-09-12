@@ -11,6 +11,7 @@ class StoreWorkspaceRequest extends BaseFormRequest
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'logo' => 'nullable|file|image|max:5120',
             'is_active' => 'nullable|boolean',
             'is_public' => 'nullable|boolean',
             'members' => 'nullable|array',
@@ -26,6 +27,9 @@ class StoreWorkspaceRequest extends BaseFormRequest
             'name.string' => 'Nama workspace harus berupa string.',
             'name.max' => 'Nama workspace maksimal 255 karakter.',
             'description.string' => 'Deskripsi workspace harus berupa string.',
+            'logo.file' => 'Logo workspace harus berupa file.',
+            'logo.image' => 'Logo workspace harus berupa gambar.',
+            'logo.max' => 'Ukuran logo workspace maksimal 5MB.',
             'is_active.boolean' => 'Status aktif harus berupa boolean.',
             'is_public.boolean' => 'Visibilitas harus berupa boolean.',
             'members.array' => 'Anggota harus berupa array.',

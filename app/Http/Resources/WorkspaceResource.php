@@ -17,6 +17,9 @@ class WorkspaceResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'description' => $this->description,
+            'is_active' => $this->is_active,
+            'is_public' => $this->is_public,
+            'logo' => $this->when($this->logo, fn() =>  url('storage/' . $this->logo)),
             'projects' => $this->whenLoaded('projects', function() {
                 $currentUser = auth()->user();
 

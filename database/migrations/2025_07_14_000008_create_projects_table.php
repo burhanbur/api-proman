@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('workspace_id');
             $table->string('name');
             $table->text('description')->nullable();
+            $table->text('logo')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_public')->default(false);
             $table->unsignedBigInteger('created_by')->nullable();

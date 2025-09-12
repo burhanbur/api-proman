@@ -44,6 +44,7 @@ Route::group(['middleware' => ['cors']], function () {
             Route::post('/', [WorkspaceController::class, 'store']);
             Route::get('/{slug}', [WorkspaceController::class, 'show']);
             Route::put('/{slug}', [WorkspaceController::class, 'update']);
+            Route::post('/{slug}/remove-logo', [WorkspaceController::class, 'removeLogo']);
             Route::delete('/{slug}', [WorkspaceController::class, 'destroy']);
 
             Route::post('/{slug}/users', [WorkspaceController::class, 'storeUser']);

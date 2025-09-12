@@ -10,6 +10,7 @@ use App\Http\Requests\Workspace\StoreWorkspaceUserRequest;
 use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Services\DocumentService;
 use App\Services\MemberService;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
@@ -177,6 +178,18 @@ class WorkspaceController extends Controller
             $workspaceData['created_by'] = $user->id;
             $workspaceData['updated_by'] = $user->id;
 
+            if ($request->hasFile('logo')) {
+                $documentService = new DocumentService();
+                $file = $request->file('logo');
+                $originalName = $file->getClientOriginalName();
+                $title = 'logo_'.pathinfo($originalName, PATHINFO_FILENAME);
+                $disk = "workspaces/{$slug}";
+                $fileName = $documentService->saveDocs($file, $title, $disk);
+                $path = "{$disk}/{$fileName}";
+
+                $workspaceData['logo'] = $path;
+            }
+
             $workspace = Workspace::create($workspaceData);
 
             // Log audit untuk workspace yang dibuat
@@ -224,8 +237,29 @@ class WorkspaceController extends Controller
         try {
             $workspaceData = [];
             $workspaceData['name'] = $data['name'];
-            $workspaceData['is_active'] = $data['is_active'];
-            $workspaceData['is_public'] = $data['is_public'];
+            $workspaceData['description'] = $data['description'];
+
+            if (isset($data['is_active'])) {
+                $workspaceData['is_active'] = $data['is_active'];
+            }
+
+            if (isset($data['is_public'])) {
+                $workspaceData['is_public'] = $data['is_public'];
+            }
+            $workspaceData['updated_by'] = $user->id;
+
+            if ($request->hasFile('logo')) {
+                $documentService = new DocumentService();
+                $file = $request->file('logo');
+                $originalName = $file->getClientOriginalName();
+                $title = 'logo_'.pathinfo($originalName, PATHINFO_FILENAME);
+                $disk = "workspaces/{$slug}";
+                $fileName = $documentService->saveDocs($file, $title, $disk);
+                $path = "{$disk}/{$fileName}";
+
+                $workspaceData['logo'] = $path;
+            }
+
             $workspace = Workspace::where('slug', $slug)->first();
 
             if (!$workspace) {
@@ -277,6 +311,69 @@ class WorkspaceController extends Controller
                 new WorkspaceResource($workspace), 
                 'Workspace berhasil diperbarui.'
             );
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    /**
+     * Remove workspace logo file and related attachment record if exists.
+     * Endpoint: POST /api/workspaces/{slug}/remove-logo
+     */
+    public function removeLogo(Request $request, $slug)
+    {
+        $user = auth()->user();
+        DB::beginTransaction();
+
+        try {
+            $workspace = Workspace::where('slug', $slug)->first();
+            if (!$workspace) {
+                return $this->errorResponse('Workspace tidak ditemukan', 404);
+            }
+
+            // keep original for audit
+            $originalData = $workspace->toArray();
+
+            // If workspace has attachments relation, try to find logo attachment
+            $logoPath = $workspace->logo ?? null;
+
+            // Clear logo field on model
+            $workspace->logo = null;
+            $workspace->updated_by = $user->id;
+            $workspace->save();
+
+            // Remove physical file if present
+            if ($logoPath) {
+                // if logo is stored as full URL, try to extract path relative to storage
+                try {
+                    // attempt to remove via Storage facade - assumes 'public' disk
+                    $relative = null;
+                    if (Str::contains($logoPath, '/storage/')) {
+                        $relative = explode('/storage/', $logoPath, 2)[1];
+                    } elseif (Str::startsWith($logoPath, 'http')) {
+                        // try to parse path after storage url
+                        $parsed = parse_url($logoPath);
+                        $relative = ltrim($parsed['path'] ?? '', '/');
+                        if (Str::startsWith($relative, 'storage/')) $relative = substr($relative, strlen('storage/'));
+                    } else {
+                        $relative = $logoPath;
+                    }
+
+                    if ($relative && Storage::disk('public')->exists($relative)) {
+                        Storage::disk('public')->delete($relative);
+                    }
+                } catch (Exception $ex) {
+                    Log::warning('Failed to delete logo file: ' . $ex->getMessage());
+                }
+            }
+
+            // Audit log
+            $this->auditUpdated($workspace, $originalData, "Logo workspace '{$workspace->name}' dihapus", $request);
+
+            DB::commit();
+            return $this->successResponse(['message' => 'Logo workspace dihapus']);
         } catch (Exception $ex) {
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();

@@ -14,6 +14,9 @@ class ProjectResource extends JsonResource
             'slug' => $this->slug,
             'name' => $this->name,
             'description' => $this->description,
+            'is_active' => $this->is_active,
+            'is_public' => $this->is_public,
+            'logo' => $this->when($this->logo, fn() =>  url('storage/' . $this->logo)),
             'workspace' => $this->whenLoaded('workspace', function() {
                 return [
                     'id' => $this->workspace->id,
