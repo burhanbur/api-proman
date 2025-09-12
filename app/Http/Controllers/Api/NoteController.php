@@ -11,6 +11,8 @@ use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
 use App\Models\Attachment;
 use Exception;
+use App\Services\DocumentService;
+use Illuminate\Support\Facades\DB;
 
 class NoteController extends Controller
 {
@@ -22,19 +24,41 @@ class NoteController extends Controller
             'model_type' => 'required|string',
             'model_id' => 'required|integer',
             'content' => 'required|string',
+            // optional attachments
+            'attachments' => 'sometimes|array',
+            'attachments.*' => 'file|max:51200', // max 50MB per file
         ]);
 
         $data = $request->only(['model_type', 'model_id', 'content']);
         $data['uuid'] = (string) Str::uuid();
         $data['created_by'] = $request->user()->id ?? null;
         $data['updated_by'] = $request->user()->id ?? null;
+        // create note and attachments atomically
+        DB::beginTransaction();
+        try {
+            $note = Note::create($data);
 
-        $note = Note::create($data);
+            // handle attachments if any using DocumentService
+            if ($request->hasFile('attachments')) {
+                $files = $request->file('attachments');
+                $documentService = new DocumentService();
+                // saveAttachments stores files and creates Attachment records
+                $documentService->saveAttachments($files, 'note', $note->id, $data['created_by']);
+            }
 
-        // audit
-        $this->auditCreated($note, "Note created", $request);
+            DB::commit();
 
-        return $this->successResponse(new NoteResource($note), 'Catatan berhasil dibuat.', 201);
+            // audit
+            $this->auditCreated($note, "Note created", $request);
+
+            // reload note with attachments for response
+            $note->load(['attachments']);
+
+            return $this->successResponse(new NoteResource($note), 'Catatan berhasil dibuat.', 201);
+        } catch (Exception $ex) {
+            DB::rollBack();
+            return $this->errorResponse($ex->getMessage(), $ex->getCode() ?: 500);
+        }
     }
 
     public function index(Request $request)
