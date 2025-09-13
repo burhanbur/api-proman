@@ -57,10 +57,14 @@ class TaskController extends Controller
             }
 
             // Non-admin users only see tasks in projects they belong to
-            if (!in_array($user->systemRole->code, ['admin'])) {
-                $query->whereHas('project.projectUsers', function($q) use ($user) {
+            if (!in_array(optional($user->systemRole)->code, ['admin'])) {
+                // fetch project ids the user is a member of and restrict tasks by those projects
+                $projectIds = Project::whereHas('projectUsers', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
-                });
+                })->pluck('id')->toArray();
+
+                // if user has no projects this will correctly return an empty result set
+                $query->whereIn('project_id', $projectIds);
             }
 
             // Sorting

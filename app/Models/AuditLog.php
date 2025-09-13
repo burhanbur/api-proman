@@ -26,6 +26,7 @@ class AuditLog extends Model
 
     public function model()
     {
-        return $this->morphTo(null, 'model_type', 'model_id');
+    // Explicitly name the relation so Eloquent can resolve polymorphic types correctly
+    return $this->morphTo('model', 'model_type', 'model_id');
     }
 }
