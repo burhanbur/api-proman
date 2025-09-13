@@ -27,8 +27,13 @@ class WorkspaceResource extends JsonResource
                     return collect();
                 }
 
-                // Only return projects where the authenticated user is a member
-                $projects = $this->projects->filter(function($project) use ($currentUser) {
+                // Determine if the current user is a system admin
+                $roleCode = strtolower($currentUser->system_role->code ?? $currentUser->systemRole->code ?? '');
+                $isSystemAdmin = in_array($roleCode, ['admin', 'system_admin']) || (($currentUser->system_role->id ?? $currentUser->systemRole->id ?? null) === 1);
+
+                // If system admin, return all projects; otherwise return only projects where user is a member
+                $projects = $this->projects->filter(function($project) use ($currentUser, $isSystemAdmin) {
+                    if ($isSystemAdmin) return true;
                     return $project->projectUsers->contains(function($pu) use ($currentUser) {
                         return $pu->user_id === $currentUser->id;
                     });

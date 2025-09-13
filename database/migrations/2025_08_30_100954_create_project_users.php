@@ -17,6 +17,8 @@ return new class extends Migration
             $table->unsignedBigInteger('project_role_id')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->primary(['project_id', 'user_id']);
             $table->index('project_id', 'idx_project_id');
             $table->index('user_id', 'idx_user_id');

@@ -142,6 +142,15 @@ class WorkspaceController extends Controller
                 }
             }
 
+            if ($isSystemAdmin) {
+                // admins can see everything, no further filtering needed
+                $workspace->whereHas('workspaceUsers', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })->orWhereHas('projects.projectUsers', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
+
             // Load required relations and return
             $workspace->load([
                 'projects.projectUsers.user',
