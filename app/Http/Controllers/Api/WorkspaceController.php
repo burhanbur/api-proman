@@ -117,40 +117,56 @@ class WorkspaceController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Workspace::with([
+            // Fetch the workspace first (to detect non-existence)
+            $workspace = Workspace::where('slug', $slug)->first();
+            if (!$workspace) {
+                throw new Exception('Workspace tidak ditemukan.', 404);
+            }
+
+            $isPublic = $workspace->is_public;
+            $isPrivate = !$isPublic;
+            $isSystemAdmin = in_array($user->systemRole->code, ['admin']);
+
+            // If private, enforce access: workspace member OR member of any project in the workspace
+            if ($isPrivate && !$isSystemAdmin) {
+                $hasAccess = $workspace->workspaceUsers()
+                    ->where('user_id', $user->id)
+                    ->exists() || $workspace->projects()
+                    ->whereHas('projectUsers', function($q) use ($user) {
+                        $q->where('user_id', $user->id);
+                    })->exists();
+
+                if (!$hasAccess) {
+                    // Deny explicitly (403) rather than returning not found
+                    throw new Exception('Anda tidak memiliki akses ke workspace ini.', 403);
+                }
+            }
+
+            // Load required relations and return
+            $workspace->load([
                 'projects.projectUsers.user',
-                'projects.tasks.status', 
-                'projects.tasks.priority', 
-                'projects.tasks.assignees', 
-                'projects.tasks.attachments', 
-                'projects.tasks.comments', 
+                'projects.tasks.status',
+                'projects.tasks.priority',
+                'projects.tasks.assignees',
+                'projects.tasks.attachments',
+                'projects.tasks.comments',
                 'workspaceUsers.user',
                 'attachments',
             ]);
 
-            if (!in_array($user->systemRole->code, ['admin'])) {
-                // Allow access if user is workspace member OR member of any project in the workspace
-                $query->where(function($q) use ($user) {
-                    $q->whereHas('workspaceUsers', function($q2) use ($user) {
-                        $q2->where('user_id', $user->id);
-                    })->orWhereHas('projects.projectUsers', function($q3) use ($user) {
-                        $q3->where('user_id', $user->id);
-                    });
-                });
-            }
-
-            $data = $query->where('slug', $slug)->first();
-
-            if (!$data) {
-                throw new Exception('Workspace tidak ditemukan.', 404);
-            }
-
             return $this->successResponse(
-                new WorkspaceResource($data),
+                new WorkspaceResource($workspace),
                 'Data workspace berhasil diambil.'
             );
         } catch (Exception $ex) {
-            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            if (in_array(config('app.env'), ['production', 'live'])) {
+                Log::error('Error: ' . $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine());
+                
+                $errMessage = 'Terjadi kesalahan saat mengambil data workspace.';
+            } else {
+                $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            }
+
             return $this->errorResponse($errMessage, $ex->getCode());
         }
     }
@@ -576,7 +592,7 @@ class WorkspaceController extends Controller
                     })->pluck('id')->toArray();
 
                 // If user does not belong to any project in this workspace, return empty activities
-                if (empty($projectIds)) {
+                if (empty($projectIds) && !$workspace->workspaceUsers()->where('user_id', $user->id)->exists()) {
                     return $this->successResponse(collect(), 'Aktivitas workspace berhasil diambil.');
                 }
             }
@@ -597,25 +613,28 @@ class WorkspaceController extends Controller
                 // admin: keep original workspace-scoped logic
                 $auditLogsQuery->where(function($q) use ($workspace) {
                     $q->where(function($subQ) use ($workspace) {
-                        $subQ->where('audit_logs.model_type', 'Project')
+                        $subQ->where('audit_logs.model_type', 'App\\Models\\Project')
                              ->whereIn('audit_logs.model_id', $workspace->projects()->pluck('id'));
                     })->orWhere(function($subQ) use ($workspace) {
-                        $subQ->where('audit_logs.model_type', 'Task')
+                        $subQ->where('audit_logs.model_type', 'App\\Models\\Task')
                              ->whereIn('audit_logs.model_id', DB::table('tasks')->whereIn('project_id', $workspace->projects()->pluck('id'))->pluck('id'));
                     })->orWhere(function($subQ) use ($workspace) {
-                        $subQ->where('audit_logs.model_type', 'Workspace')
+                        $subQ->where('audit_logs.model_type', 'App\\Models\\Workspace')
                              ->where('audit_logs.model_id', $workspace->id);
                     });
                 });
             } else {
-                // non-admin: restrict to project/task logs only
-                $auditLogsQuery->where(function($q) use ($projectIds, $taskIds) {
+                // non-admin: restrict to project/task/workspace logs only
+                $auditLogsQuery->where(function($q) use ($projectIds, $taskIds, $workspace) {
                     $q->where(function($subQ) use ($projectIds) {
-                        $subQ->where('audit_logs.model_type', 'Project')
+                        $subQ->where('audit_logs.model_type', 'App\\Models\\Project')
                              ->whereIn('audit_logs.model_id', $projectIds);
                     })->orWhere(function($subQ) use ($taskIds) {
-                        $subQ->where('audit_logs.model_type', 'Task')
+                        $subQ->where('audit_logs.model_type', 'App\\Models\\Task')
                              ->whereIn('audit_logs.model_id', $taskIds);
+                    })->orWhere(function($subQ) use ($workspace) {
+                        $subQ->where('audit_logs.model_type', 'App\\Models\\Workspace')
+                             ->where('audit_logs.model_id', $workspace->id);
                     });
                 });
             }

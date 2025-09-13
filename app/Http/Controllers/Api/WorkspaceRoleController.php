@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\WorkspaceRole;
+use App\Models\Workspace;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
 
@@ -59,6 +61,71 @@ class WorkspaceRoleController extends Controller
                 $data,
                 'Data peran workspace berhasil diambil.'
             );
+        } catch (Exception $ex) {
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function dropdown(Request $request, $slug) 
+    {
+        try {
+            $query = WorkspaceRole::query();
+
+            // Search functionality
+            if ($search = $request->query('search')) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('code', 'like', "%{$search}%");
+                });
+            }
+
+            $user = auth()->user()->load(['systemRole']);
+
+            $isSysAdmin = in_array(strtolower($user->systemRole->code ?? ''), ['admin']);
+
+            // If system admin, return all roles (optionally filtered by search/is_active above)
+            if ($isSysAdmin) {
+                $data = $query->orderBy('name', 'asc')->get();
+                return $this->successResponse($data, 'Data peran workspace aktif berhasil diambil.');
+            }
+
+            // Non-system-admin: need workspace context to determine what roles to show
+            $workspace = Workspace::where('slug', $slug)->first();
+
+            // If no workspace context provided, return empty set for non-admin users
+            if (!$workspace) {
+                return $this->successResponse(collect(), 'Data peran workspace aktif berhasil diambil.');
+            }
+
+            // Find the current user's workspace membership
+            $workspaceUser = $workspace->workspaceUsers()->where('user_id', $user->id)->with('workspaceRole')->first();
+
+            if (!$workspaceUser) {
+                // Not a member of this workspace -> no roles available
+                return $this->successResponse(collect(), 'Data peran workspace aktif berhasil diambil.');
+            }
+
+            $roleCode = strtolower($workspaceUser->workspaceRole->code ?? $workspaceUser->role ?? '');
+
+            // Owner: show all
+            if (str_contains($roleCode, 'owner')) {
+                $data = $query->orderBy('name', 'asc')->get();
+                return $this->successResponse($data, 'Data peran workspace aktif berhasil diambil.');
+            }
+
+            // Admin: show all except owner
+            if (str_contains($roleCode, 'admin')) {
+                $data = $query->where(function($q) {
+                    $q->where('code', 'not like', '%owner%')
+                      ->where('name', 'not like', '%owner%');
+                })->orderBy('name', 'asc')->get();
+
+                return $this->successResponse($data, 'Data peran workspace aktif berhasil diambil.');
+            }
+
+            // Other roles: none
+            return $this->successResponse(collect(), 'Data peran workspace aktif berhasil diambil.');
         } catch (Exception $ex) {
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());

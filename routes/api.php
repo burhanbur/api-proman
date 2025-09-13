@@ -153,8 +153,9 @@ Route::group(['middleware' => ['cors']], function () {
         // Workspace Role
         Route::group(['prefix' => 'workspace-roles'], function () {
             Route::get('/', [WorkspaceRoleController::class, 'index']);
+            Route::get('/{slug}/roles/dropdown', [WorkspaceRoleController::class, 'dropdown']);
+            Route::get('/{id}', [WorkspaceRoleController::class, 'show'])->where('id', '[0-9]+');
             Route::post('/', [WorkspaceRoleController::class, 'store']);
-            Route::get('/{id}', [WorkspaceRoleController::class, 'show']);
             Route::put('/{id}', [WorkspaceRoleController::class, 'update']);
             Route::delete('/{id}', [WorkspaceRoleController::class, 'destroy']);
         });
