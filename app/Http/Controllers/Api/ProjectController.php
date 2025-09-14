@@ -30,6 +30,8 @@ use Illuminate\Support\Str;
 
 use Exception;
 use App\Models\ProjectStatus;
+use App\Models\Attachment;
+use App\Http\Resources\AttachmentResource;
 
 class ProjectController extends Controller
 {
@@ -935,6 +937,62 @@ class ProjectController extends Controller
             return $this->successResponse(['message' => 'Urutan status proyek berhasil diperbarui.']);
         } catch (Exception $ex) {
             DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function getProjectAttachments($slug) 
+    {
+        $user = auth()->user();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            // Access check: admin or project member
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $hasAccess = $project->projectUsers()->where('user_id', $user->id)->exists();
+                if (!$hasAccess) {
+                    throw new Exception('Anda tidak memiliki akses ke proyek ini.', 403);
+                }
+            }
+
+            // Collect task ids for the project
+            $taskIds = $project->tasks()->pluck('id')->toArray();
+
+            // Query attachments related to tasks or comments belonging to this project
+            $query = Attachment::query()->where(function($q) use ($taskIds) {
+                // model_type stored as full class names in attachments
+                $q->where(function($qq) use ($taskIds) {
+                    $qq->where('model_type', 'App\\Models\\Task')
+                       ->whereIn('model_id', $taskIds);
+                })
+                ->orWhere(function($qq) use ($taskIds) {
+                    // comments -> model_id is comment id; we need to fetch comment ids for tasks
+                    $commentIds = DB::table('comments')->whereIn('task_id', $taskIds)->pluck('id')->toArray();
+                    $qq->where('model_type', 'App\\Models\\Comment')
+                       ->whereIn('model_id', $commentIds);
+                });
+            });
+
+            // Allow optional limit param via query string
+            $limit = (int) request()->query('limit', 0);
+            $query = $query->orderBy('created_at', 'desc');
+            if ($limit > 0) {
+                $attachments = $query->limit($limit)->get();
+            } else {
+                $attachments = $query->get();
+            }
+
+            // Eager load relations used by resource
+            $attachments->loadMissing(['createdBy', 'updatedBy', 'deletedBy']);
+
+            return $this->successResponse(AttachmentResource::collection($attachments), 'Lampiran proyek berhasil diambil.');
+        } catch (Exception $ex) {
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());
         }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProjectRole;
+use App\Models\Project;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
 
@@ -61,6 +62,71 @@ class ProjectRoleController extends Controller
                 $data,
                 'Data peran proyek berhasil diambil.'
             );
+        } catch (Exception $ex) {
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function dropdown(Request $request, $slug) 
+    {
+        try {
+            $query = ProjectRole::query();
+
+            // Search functionality
+            if ($search = $request->query('search')) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('code', 'like', "%{$search}%");
+                });
+            }
+
+            $user = auth()->user()->load(['systemRole']);
+
+            $isSysAdmin = in_array(strtolower($user->systemRole->code ?? ''), ['admin']);
+
+            // If system admin, return all roles (optionally filtered by search/is_active above)
+            if ($isSysAdmin) {
+                $data = $query->orderBy('name', 'asc')->get();
+                return $this->successResponse($data, 'Data peran proyek berhasil diambil.');
+            }
+
+            // Non-system-admin: need project context to determine what roles to show
+            $project = Project::where('slug', $slug)->first();
+
+            // If no project context provided, return empty set for non-admin users
+            if (!$project) {
+                return $this->successResponse(collect(), 'Data peran proyek berhasil diambil.');
+            }
+
+            // Find the current user's project membership
+            $projectUser = $project->projectUsers()->where('user_id', $user->id)->with('projectRole')->first();
+
+            if (!$projectUser) {
+                // Not a member of this project -> no roles available
+                return $this->successResponse(collect(), 'Data peran proyek berhasil diambil.');
+            }
+
+            $roleCode = strtolower($projectUser->projectRole->code ?? $projectUser->role ?? '');
+
+            // Owner: show all
+            if (str_contains($roleCode, 'owner')) {
+                $data = $query->orderBy('name', 'asc')->get();
+                return $this->successResponse($data, 'Data peran proyek berhasil diambil.');
+            }
+
+            // Admin: show all except owner
+            if (str_contains($roleCode, 'admin')) {
+                $data = $query->where(function($q) {
+                    $q->where('code', 'not like', '%owner%')
+                      ->where('name', 'not like', '%owner%');
+                })->orderBy('name', 'asc')->get();
+
+                return $this->successResponse($data, 'Data peran proyek berhasil diambil.');
+            }
+
+            // Other roles: none
+            return $this->successResponse(collect(), 'Data peran proyek berhasil diambil.');
         } catch (Exception $ex) {
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());

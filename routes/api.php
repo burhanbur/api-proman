@@ -77,6 +77,7 @@ Route::group(['middleware' => ['cors']], function () {
 
             Route::delete('/{slug}/status/{statusId}', [ProjectController::class, 'deleteProjectStatus']);
 
+            Route::get('/{slug}/attachments', [ProjectController::class, 'getProjectAttachments']);
             Route::get('/{slug}/activities', [ProjectController::class, 'getActivities']);
         });
 
@@ -140,6 +141,8 @@ Route::group(['middleware' => ['cors']], function () {
             Route::get('/{id}', [ProjectRoleController::class, 'show']);
             Route::put('/{id}', [ProjectRoleController::class, 'update']);
             Route::delete('/{id}', [ProjectRoleController::class, 'destroy']);
+
+            Route::get('/{slug}/roles/dropdown', [ProjectRoleController::class, 'dropdown']);
         });
 
         // Priority
