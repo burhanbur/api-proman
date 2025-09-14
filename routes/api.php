@@ -67,6 +67,16 @@ Route::group(['middleware' => ['cors']], function () {
             Route::delete('/{slug}/users', [ProjectController::class, 'destroyUser']);
 
             Route::get('/{slug}/status', [ProjectController::class, 'getProjectStatus']);
+            Route::post('/{slug}/status', [ProjectController::class, 'storeProjectStatus']);
+
+            // Make literal 'order' route come before the parameterized route to avoid
+            // Laravel capturing the word 'order' as {statusId}.
+            Route::put('/{slug}/status/order', [ProjectController::class, 'updateStatusOrder']);
+            Route::put('/{slug}/status/{statusId}', [ProjectController::class, 'updateProjectStatus'])
+                ->where('statusId', '[0-9]+');
+
+            Route::delete('/{slug}/status/{statusId}', [ProjectController::class, 'deleteProjectStatus']);
+
             Route::get('/{slug}/activities', [ProjectController::class, 'getActivities']);
         });
 

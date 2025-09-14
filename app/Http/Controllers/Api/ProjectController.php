@@ -10,6 +10,7 @@ use App\Http\Requests\Project\StoreProjectUserRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Project;
 use App\Models\ProjectUser;
+use App\Models\TemplateStatus;
 use App\Services\DocumentService;
 use App\Services\MemberService;
 use App\Traits\ApiResponse;
@@ -28,6 +29,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 use Exception;
+use App\Models\ProjectStatus;
 
 class ProjectController extends Controller
 {
@@ -182,6 +184,19 @@ class ProjectController extends Controller
             }
 
             $project = Project::create($projectData);
+
+            foreach(TemplateStatus::orderBy('id', 'asc')->get() as $key => $templateStatus) {
+                ProjectStatus::create([
+                    'project_id' => $project->id,
+                    'name' => $templateStatus->name,
+                    'color' => $templateStatus->color,
+                    'order' => $key + 1,
+                    'is_completed' => $templateStatus->is_completed,
+                    'is_cancelled' => $templateStatus->is_cancelled,
+                    'created_by' => $user->id,
+                    'updated_by' => $user->id,
+                ]);
+            }
 
             // Log audit untuk project yang dibuat
             $this->auditCreated($project, "Project '{$project->name}' berhasil dibuat", $request);
@@ -683,6 +698,243 @@ class ProjectController extends Controller
 
             return $this->successResponse($statuses, 'Daftar status proyek berhasil diambil.');
         } catch (Exception $ex) {
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function storeProjectStatus(Request $request, $slug)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:100',
+            'color' => 'nullable|string|max:7',
+            'order' => 'nullable|integer|min:0',
+            'is_default' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            // Permission: only project members or admin can create status
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                if (!$project->projectUsers()->where('user_id', $user->id)->exists()) {
+                    return $this->errorResponse('Tidak punya izin untuk membuat status di proyek ini.', 403);
+                }
+            }
+
+            $data = $validator->validated();
+            $data['project_id'] = $project->id;
+            $data['created_by'] = $user->id;
+            $data['updated_by'] = $user->id;
+
+            $projectStatus = ProjectStatus::create($data);
+
+            // Log audit untuk status yang dibuat
+            $this->auditCreated($projectStatus, "Status proyek '{$projectStatus->name}' berhasil dibuat", $request);
+
+            DB::commit();
+            return $this->successResponse(
+                $projectStatus,
+                'Status proyek berhasil dibuat.'
+            );
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function updateProjectStatus(Request $request, $slug, $statusId)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:100',
+            'color' => 'nullable|string|max:7',
+            'order' => 'nullable|integer|min:0',
+            'is_default' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            $projectStatus = ProjectStatus::find($statusId);
+            if (!$projectStatus) {
+                throw new Exception('Status proyek tidak ditemukan.', 404);
+            }
+
+            // Ensure the status belongs to the project
+            if ($projectStatus->project_id !== $project->id) {
+                return $this->errorResponse('Status tidak terkait dengan proyek ini.', 400);
+            }
+
+            // Permission: only project members or admin can update
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                if (!$project->projectUsers()->where('user_id', $user->id)->exists()) {
+                    return $this->errorResponse('Tidak punya izin untuk memperbarui status ini.', 403);
+                }
+            }
+
+            $originalData = $projectStatus->toArray();
+
+            $data = $validator->validated();
+            $data['updated_by'] = $user->id;
+            $projectStatus->update($data);
+
+            // Log audit untuk status yang diupdate
+            $this->auditUpdated($projectStatus, $originalData, "Status proyek '{$projectStatus->name}' berhasil diperbarui", $request);
+
+            DB::commit();
+            return $this->successResponse(
+                $projectStatus,
+                'Status proyek berhasil diperbarui.'
+            );
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function deleteProjectStatus(Request $request, $slug, $statusId)
+    {
+        $user = auth()->user();
+        DB::beginTransaction();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            $projectStatus = ProjectStatus::find($statusId);
+            if (!$projectStatus) {
+                throw new Exception('Status proyek tidak ditemukan.', 404);
+            }
+
+            // Ensure the status belongs to the project
+            if ($projectStatus->project_id !== $project->id) {
+                return $this->errorResponse('Status tidak terkait dengan proyek ini.', 400);
+            }
+
+            // Permission: only project members or admin can delete
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                if (!$project->projectUsers()->where('user_id', $user->id)->exists()) {
+                    return $this->errorResponse('Tidak punya izin untuk menghapus status ini.', 403);
+                }
+            }
+
+            // Check if status is being used by tasks
+            if ($projectStatus->tasks()->count() > 0) {
+                return $this->errorResponse('Status tidak dapat dihapus karena masih digunakan oleh tugas.', 400);
+            }
+
+            // Log audit sebelum menghapus
+            $this->auditDeleted($projectStatus, "Status proyek '{$projectStatus->name}' berhasil dihapus", $request);
+
+            $projectStatus->deleted_by = $user->id;
+            $projectStatus->save();
+            $projectStatus->delete();
+
+            DB::commit();
+            return $this->successResponse(['message' => 'Status proyek berhasil dihapus.']);
+        } catch (Exception $ex) {
+            DB::rollBack();
+            $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
+            return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    public function updateStatusOrder(Request $request, $slug)
+    {
+        $user = auth()->user();
+        // Accept either payload:
+        // { order: [id, id, id] }
+        // or frontend-friendly: { orders: [{ id: <id>, order: <position> }, ...] }
+        $validator = Validator::make($request->all(), [
+            'order' => 'sometimes|array',
+            'order.*' => 'integer|distinct|exists:project_status,id',
+            'orders' => 'sometimes|array',
+            'orders.*.id' => 'integer|distinct|exists:project_status,id',
+            'orders.*.order' => 'nullable|integer|min:0'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $project = Project::where('slug', $slug)->first();
+
+            if (!$project) {
+                throw new Exception('Proyek tidak ditemukan.', 404);
+            }
+
+            // Permission: only project members or admin can update order
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                if (!$project->projectUsers()->where('user_id', $user->id)->exists()) {
+                    return $this->errorResponse('Tidak punya izin untuk memperbarui urutan status di proyek ini.', 403);
+                }
+            }
+
+            $validated = $validator->validated();
+
+            // Normalize payload to array of ids in desired order
+            if (!empty($validated['orders'])) {
+                // Frontend sent [{id, order}] - sort by provided order (ascending) then extract ids
+                $ordersPayload = collect($validated['orders'])->sortBy(function ($item) {
+                    return $item['order'] ?? 0;
+                })->values();
+                $statusIds = $ordersPayload->pluck('id')->toArray();
+            } elseif (!empty($validated['order'])) {
+                $statusIds = $validated['order'];
+            } else {
+                return $this->errorResponse('Payload tidak valid. Gunakan "order" atau "orders".', 400);
+            }
+
+            // Pastikan semua status memang milik project ini
+            $validStatusIds = $project->projectStatuses()->whereIn('id', $statusIds)->pluck('id')->toArray();
+            if (count($validStatusIds) !== count(array_unique($statusIds))) {
+                return $this->errorResponse('Daftar status mengandung id yang tidak valid untuk proyek ini.', 400);
+            }
+
+            // Update order berdasarkan array yang diberikan
+            foreach ($statusIds as $index => $statusId) {
+                ProjectStatus::where('id', $statusId)->where('project_id', $project->id)->update([
+                    'order' => $index + 1,
+                    'updated_by' => $user->id
+                ]);
+            }
+
+            DB::commit();
+            return $this->successResponse(['message' => 'Urutan status proyek berhasil diperbarui.']);
+        } catch (Exception $ex) {
+            DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());
         }

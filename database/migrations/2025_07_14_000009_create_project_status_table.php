@@ -14,6 +14,8 @@ return new class extends Migration {
             $table->boolean('is_completed')->default(false);
             $table->boolean('is_cancelled')->default(false);
             $table->smallInteger('order')->default(0);
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
             $table->unsignedBigInteger('deleted_by')->nullable();
@@ -21,6 +23,8 @@ return new class extends Migration {
             $table->index('project_id', 'idx_project_id');
             $table->foreign('project_id')->references('id')->on('projects');
             $table->foreign('deleted_by')->references('id')->on('users');
+            $table->foreign('created_by')->references('id')->on('users');
+            $table->foreign('updated_by')->references('id')->on('users');
         });
     }
 
