@@ -110,7 +110,8 @@ class ProjectStatusController extends Controller
             'name' => 'required|string|max:100',
             'color' => 'nullable|string|max:7',
             'order' => 'nullable|integer|min:0',
-            'is_default' => 'nullable|boolean'
+            'is_completed' => 'nullable|boolean',
+            'is_cancelled' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -158,7 +159,8 @@ class ProjectStatusController extends Controller
             'name' => 'required|string|max:100',
             'color' => 'nullable|string|max:7',
             'order' => 'nullable|integer|min:0',
-            'is_default' => 'nullable|boolean'
+            'is_completed' => 'nullable|boolean',
+            'is_cancelled' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
