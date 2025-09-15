@@ -94,6 +94,75 @@ class TaskController extends Controller
         }
     }
 
+    public function taskIncomplete() 
+    {
+        $user = auth()->user();
+
+        try {
+            $query = Task::with([
+                'project.workspace', 
+                'assignees', 
+                'comments', 
+                'attachments', 
+                'status', 
+                'activityLogs', 
+                'priority'
+            ])
+            ->whereHas('project', function($q) {
+                $q->where('is_active', true);
+            })
+            ->whereHas('status', function($q) {
+                $q->where('is_completed', false)
+                    ->where('is_cancelled', false);
+            });
+
+            // Search
+            if ($search = request()->query('search')) {
+                $query->where(function($q) use ($search) {
+                    $q->orWhere('title', 'like', "%{$search}%");
+                    $q->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+
+            // Filter by project
+            if ($projectId = request()->query('project_id')) {
+                $query->where('project_id', $projectId);
+            }
+
+            // Non-admin users only see tasks in projects they belong to
+            if (!in_array($user->systemRole->code, ['admin'])) {
+                $query->whereHas('project.projectUsers', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            }
+
+            // Sorting
+            $sortParams = request()->query('sort');
+            if ($sortParams) {
+                // expected format: field:direction,field2:direction2
+                $pairs = explode(',', $sortParams);
+                foreach ($pairs as $pair) {
+                    [$field, $dir] = array_pad(explode(':', $pair), 2, 'asc');
+                    $dir = strtolower($dir) === 'desc' ? 'desc' : 'asc';
+                    $query->orderBy($field, $dir);
+                }
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            // $data = $query->paginate((int) request()->query('limit', 10));
+            $data = $query->get();
+
+            return $this->successResponse(
+                TaskResource::collection($data), 
+                'Data tugas berhasil diambil.'
+            );
+        } catch (Exception $e) {
+            $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
+            return $this->errorResponse($errMessage, $e->getCode());
+        }
+    }
+
     public function recent() 
     {
         $user = auth()->user();

@@ -85,7 +85,8 @@ Route::group(['middleware' => ['cors']], function () {
         Route::group(['prefix' => 'tasks'], function () {
             Route::get('/', [TaskController::class, 'index']);
             Route::post('/', [TaskController::class, 'store']);
-            Route::get('/recent', [TaskController::class, 'recent']);
+            Route::get('recent', [TaskController::class, 'recent']);
+            Route::get('todo', [TaskController::class, 'taskIncomplete']);
 
             Route::get('/{uuid}', [TaskController::class, 'show'])
                 ->where('uuid', '[0-9a-fA-F\-]{36}');
