@@ -16,8 +16,6 @@ class TaskResource extends JsonResource
             'description' => $this->description,
             'due_date' => $this->due_date,
             'point' => $this->point,
-            'is_completed' => $this->is_completed,
-            'is_cancelled' => $this->is_cancelled,
             'created_by' => $this->createdBy->name ?? null,
             'project' => $this->whenLoaded('project', function () {
                 return [
@@ -53,6 +51,8 @@ class TaskResource extends JsonResource
                     'status_id' => $this->status->id,
                     'name' => $this->status->name,
                     'color' => $this->status->color ?? null,
+                    'is_completed' => (bool) $this->status->is_completed ?? false,
+                    'is_cancelled' => (bool) $this->status->is_canceled ?? false,
                 ];
             }),
             'assignees' => $this->whenLoaded('assignees', function () {

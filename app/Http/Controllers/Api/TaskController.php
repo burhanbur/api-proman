@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TaskResource;
+use App\Http\Resources\CommentResource;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
+use App\Models\Comment;
 use App\Models\Task;
 use App\Models\Project;
 use App\Models\ProjectStatus;
@@ -287,6 +289,26 @@ class TaskController extends Controller
             );
         } catch (Exception $e) {
             DB::rollBack();
+            $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
+            return $this->errorResponse($errMessage, $e->getCode());
+        }
+    }
+
+    public function getTaskComments($taskId) 
+    {
+        $user = auth()->user();
+
+        try {
+            $comments = Comment::with(['task'])
+            ->where('task_id', $taskId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+            return $this->successResponse(
+                CommentResource::collection($comments),
+                'Komentar tugas berhasil diambil.'
+            );
+        } catch (Exception $e) {
             $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
             return $this->errorResponse($errMessage, $e->getCode());
         }
