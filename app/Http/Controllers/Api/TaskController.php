@@ -11,6 +11,8 @@ use App\Models\Comment;
 use App\Models\Task;
 use App\Models\Project;
 use App\Models\ProjectStatus;
+use App\Models\TaskRelation;
+use App\Models\TaskRelationType;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
 use App\Services\DocumentService;
@@ -228,7 +230,7 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $task = Task::with(['project.workspace', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority'])
+            $task = Task::with(['project.workspace', 'assignees', 'comments', 'attachments.createdBy', 'status', 'activityLogs', 'priority'])
             ->where('uuid', $uuid)->first();
             if (!$task) {
                 return $this->errorResponse('Tugas tidak ditemukan.', 404);
@@ -272,12 +274,49 @@ class TaskController extends Controller
                 }
             }
 
+            unset($data['attachments']);
+            unset($data['assignees']);
+            unset($data['related_tasks']);
             $taskData = $data;
             $taskData['uuid'] = (string) Str::uuid();
             $taskData['created_by'] = $user->id;
             $taskData['updated_by'] = $user->id;
 
             $task = Task::create($taskData);
+
+            // handle attachments if any using DocumentService
+            if ($request->hasFile('attachments')) {
+                $files = $request->file('attachments');
+                $documentService = new DocumentService();
+                // saveAttachments stores files and creates Attachment records
+                // pass the authenticated user id to be the creator/updater
+                $documentService->saveAttachments($files, 'task', $task->id, $user->id);
+            }
+
+            // Handle assignees if any
+            if ($request->has('assignees')) {
+                $assignees = $data['assignees'];
+                foreach ($assignees as $assignee) {
+                    $task->assignees()->create([
+                        'user_id' => $assignee['user_id'],
+                        'created_by' => $user->id,
+                        'updated_by' => $user->id,
+                    ]);
+                }
+            }
+
+            // Handle related tasks if any
+            if ($request->has('related_tasks')) {
+                $relatedTasks = $data['related_tasks'];
+                foreach ($relatedTasks as $rel) {
+                    $task->relatedTasks()->create([
+                        'related_task_id' => $rel['task_id'],
+                        'relation_type_id' => $rel['relation_type_id'],
+                        'created_by' => $user->id,
+                        'updated_by' => $user->id,
+                    ]);
+                }
+            }
 
             // Log audit untuk task yang dibuat
             $this->auditCreated($task, "Task '{$task->title}' berhasil dibuat di project '{$project->name}'", $request);
@@ -299,7 +338,7 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $comments = Comment::with(['task'])
+            $comments = Comment::with(['task.project', 'createdBy', 'attachments.createdBy'])
             ->where('task_id', $taskId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -336,9 +375,47 @@ class TaskController extends Controller
 
             // Simpan data original untuk audit log
             $originalData = $task->toArray();
-
+            unset($data['attachments']);
+            unset($data['assignees']);
+            unset($data['related_tasks']);
             $data['updated_by'] = $user->id;
             $task->update($data);
+
+            // handle attachments if any using DocumentService
+            if ($request->hasFile('attachments')) {
+                $files = $request->file('attachments');
+                $documentService = new DocumentService();
+                // saveAttachments stores files and creates Attachment records
+                // pass the authenticated user id to be the creator/updater
+                $documentService->saveAttachments($files, 'task', $task->id, $user->id);
+            }
+
+            // Handle assignees if any
+            if ($request->has('assignees')) {
+                $assignees = $data['assignees'];
+                $task->assignees()->delete();
+                foreach ($assignees as $assignee) {
+                    $task->assignees()->create([
+                        'user_id' => $assignee['user_id'],
+                        'created_by' => $user->id,
+                        'updated_by' => $user->id,
+                    ]);
+                }
+            }
+
+            // Handle related tasks if any
+            if ($request->has('related_tasks')) {
+                $relatedTasks = $data['related_tasks'];
+                $task->relatedTasks()->delete();
+                foreach ($relatedTasks as $rel) {
+                    $task->relatedTasks()->create([
+                        'related_task_id' => $rel['task_id'],
+                        'relation_type_id' => $rel['relation_type_id'],
+                        'created_by' => $user->id,
+                        'updated_by' => $user->id,
+                    ]);
+                }
+            }
 
             // Log audit untuk task yang diupdate
             $this->auditUpdated($task, $originalData, "Task '{$task->title}' berhasil diperbarui", $request);
@@ -560,5 +637,33 @@ class TaskController extends Controller
             $errMessage = $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
             return $this->errorResponse($errMessage, $e->getCode());
         }
+    }
+
+    public function getTaskRelations($uuid)
+    {
+        $user = auth()->user();
+
+        $task = Task::with(['relatedTasks', 'relatedTasks.relatedTask', 'relatedTasks.relationType'])
+            ->where('uuid', $uuid)
+            ->first();
+
+        if (!$task) {
+            return $this->errorResponse('Tugas tidak ditemukan.', 404);
+        }
+
+        return $this->successResponse(
+            $task->relatedTasks,
+            'Tugas terkait berhasil diambil.'
+        );
+    }
+
+    public function getTaskRelationTypes()
+    {
+        $relationTypes = TaskRelationType::orderBy('id', 'asc')->get();
+
+        return $this->successResponse(
+            $relationTypes,
+            'Tipe hubungan tugas berhasil diambil.'
+        );
     }
 }

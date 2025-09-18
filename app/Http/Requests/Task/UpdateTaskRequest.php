@@ -16,6 +16,11 @@ class UpdateTaskRequest extends BaseFormRequest
             'status_id' => 'nullable|integer|exists:project_status,id',
             'assignees' => 'nullable|array',
             'assignees.*.user_id' => 'required|integer|exists:users,id',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:5120', // Max 5MB per file
+            'related_tasks' => 'nullable|array',
+            'related_tasks.*.task_id' => 'required|integer|exists:tasks,id',
+            'related_tasks.*.relation_type_id' => 'required|integer|exists:task_relation_types,id',
         ];
     }
 
@@ -34,6 +39,12 @@ class UpdateTaskRequest extends BaseFormRequest
             'assignees.*.user_id.required' => 'ID pengguna penugasan wajib diisi.',
             'assignees.*.user_id.integer' => 'ID pengguna penugasan harus berupa integer.',
             'assignees.*.user_id.exists' => 'ID pengguna penugasan tidak valid.',
+            'attachments.array' => 'Lampiran harus berupa array.',
+            'attachments.*.file' => 'Setiap lampiran harus berupa file.',
+            'attachments.*.max' => 'Ukuran setiap lampiran maksimal 5MB.',
+            'related_tasks.array' => 'Tugas terkait harus berupa array.',
+            'related_tasks.*.task_id.required' => 'ID tugas terkait wajib diisi.',
+            'related_tasks.*.task_id.integer' => 'ID tugas terkait harus berupa integer.',
         ];
     }
 }

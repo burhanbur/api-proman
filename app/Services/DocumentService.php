@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use App\Models\Attachment;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
+// DB transactions are handled by callers (controllers); avoid nested transactions here
 use Exception;
 
 class DocumentService
@@ -81,8 +81,6 @@ class DocumentService
         $created = [];
         $savedFiles = [];
 
-        // ensure atomicity: if one fails, roll back all DB changes and delete saved files
-        DB::beginTransaction();
         try {
             foreach ($files as $file) {
                 $originalName = $file->getClientOriginalName();
@@ -113,10 +111,9 @@ class DocumentService
                 $created[] = $attachment;
             }
 
-            DB::commit();
             return $created;
         } catch (Exception $e) {
-            // cleanup saved files on error
+            // cleanup saved files on error (delete any files already written)
             foreach ($savedFiles as $sf) {
                 try {
                     $this->deleteDocs($sf['fileName'], $sf['disk']);
@@ -125,7 +122,7 @@ class DocumentService
                 }
             }
 
-            DB::rollBack();
+            // rethrow so caller can decide how to handle DB rollback
             throw $e;
         }
     }

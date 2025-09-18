@@ -98,6 +98,9 @@ Route::group(['middleware' => ['cors']], function () {
             Route::put('/{uuid}/status', [TaskController::class, 'updateStatus']);
             Route::post('/{uuid}/assign', [TaskController::class, 'assignTask']);
             Route::delete('/{uuid}/assign/{userId}', [TaskController::class, 'unassignTask']);
+
+            Route::get('/{uuid}/relations', [TaskController::class, 'getTaskRelations']);
+            Route::get('/relation-types', [TaskController::class, 'getTaskRelationTypes']);
         });
 
         // Comment

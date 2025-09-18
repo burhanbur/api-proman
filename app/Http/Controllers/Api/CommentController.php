@@ -26,7 +26,7 @@ class CommentController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Comment::with(['task.project', 'createdBy']);
+            $query = Comment::with(['task.project', 'createdBy', 'attachments.createdBy']);
 
             // Search functionality
             if ($search = $request->query('search')) {
@@ -80,7 +80,7 @@ class CommentController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Comment::with(['task.project', 'createdBy']);
+            $query = Comment::with(['task.project', 'createdBy', 'attachments.createdBy']);
 
             // Permission: only show comments from projects user has access to
             if (!in_array($user->systemRole->code, ['admin'])) {
@@ -113,7 +113,7 @@ class CommentController extends Controller
         DB::beginTransaction();
         try {
             // Basic permission: user must belong to project or be admin
-            $task = Task::with('project')->where('id', $data['task_id'])->first();
+            $task = Task::with(['attachments.createdBy', 'project'])->where('id', $data['task_id'])->first();
             if (!$task) {
                 return $this->errorResponse('Task tidak ditemukan.', 404);
             }
@@ -125,12 +125,22 @@ class CommentController extends Controller
                 }
             }
 
+            unset($data['attachments']);
             $commentData = $data;
             $commentData['uuid'] = Str::uuid();
             $commentData['created_by'] = $user->id;
             $commentData['updated_by'] = $user->id;
 
             $comment = Comment::create($commentData);
+
+            // handle attachments if any using DocumentService
+            if ($request->hasFile('attachments')) {
+                $files = $request->file('attachments');
+                $documentService = new DocumentService();
+                // saveAttachments stores files and creates Attachment records
+                // pass the authenticated user id to be the creator/updater
+                $documentService->saveAttachments($files, 'comment', $comment->id, $user->id);
+            }
 
             // Log audit untuk comment yang dibuat
             $this->auditCreated($comment, "Komentar berhasil ditambahkan ke task '{$task->title}'", $request);

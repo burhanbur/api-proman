@@ -70,11 +70,11 @@ class TaskResource extends JsonResource
                     return [
                         'attachment_id' => $att->id,
                         'uuid' => $att->uuid,
-                        'original_name' => $att->original_name,
-                        'file_name' => $att->file_name,
                         'file_path' => $att->file_path,
-                        'mime' => $att->mime,
-                        'size' => $att->size,
+                        'original_filename' => $att->original_filename,
+                        'mime_type' => $att->mime_type,
+                        'file_size' => $att->file_size,
+                        'created_by' => $att->createdBy->name ?? null,
                         'created_at' => $att->created_at,
                     ];
                 });
