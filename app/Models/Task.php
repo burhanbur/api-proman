@@ -68,4 +68,19 @@ class Task extends Model
     {
         return $this->hasMany(Attachment::class, 'model_id')->where('model_type', 'App\Models\Task')->orderBy('created_at', 'desc');
     }
+
+    public function relatedFrom()
+    {
+        return $this->hasMany(TaskRelation::class, 'related_task_id', 'id');
+    }
+
+    public function relatedTo()
+    {
+        return $this->hasMany(TaskRelation::class, 'task_id', 'id');
+    }
+
+    public function taskRelationTypes()
+    {
+        return $this->belongsToMany(TaskRelationType::class, 'task_relations', 'task_id', 'relation_type_id');
+    }
 }

@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\Project;
 use App\Models\ProjectStatus;
 use App\Models\TaskRelation;
+use App\Models\TaskAssignee;
 use App\Models\TaskRelationType;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
@@ -40,7 +41,21 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Task::with(['project.workspace', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority']);
+            $query = Task::with([
+                'project.workspace', 
+                'assignees', 
+                'comments', 
+                'attachments.createdBy', 
+                'status', 
+                'activityLogs', 
+                'priority',
+                'relatedFrom.task',
+                'relatedFrom.relatedTask',
+                'relatedFrom.relationType',
+                'relatedTo.task',
+                'relatedTo.relatedTask',
+                'relatedTo.relationType',
+            ]);
 
             // Search
             if ($search = request()->query('search')) {
@@ -107,10 +122,16 @@ class TaskController extends Controller
                 'project.workspace', 
                 'assignees', 
                 'comments', 
-                'attachments', 
+                'attachments.createdBy', 
                 'status', 
                 'activityLogs', 
-                'priority'
+                'priority',
+                'relatedFrom.task',
+                'relatedFrom.relatedTask',
+                'relatedFrom.relationType',
+                'relatedTo.task',
+                'relatedTo.relatedTask',
+                'relatedTo.relationType',
             ])
             ->whereHas('project', function($q) {
                 $q->where('is_active', true);
@@ -172,7 +193,21 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $query = Task::with(['project.workspace', 'assignees', 'comments', 'attachments', 'status', 'activityLogs', 'priority']);
+            $query = Task::with([
+                'project.workspace', 
+                'assignees', 
+                'comments', 
+                'attachments.createdBy', 
+                'status', 
+                'activityLogs', 
+                'priority',
+                'relatedFrom.task',
+                'relatedFrom.relatedTask',
+                'relatedFrom.relationType',
+                'relatedTo.task',
+                'relatedTo.relatedTask',
+                'relatedTo.relationType',
+            ]);
 
             // Search
             if ($search = request()->query('search')) {
@@ -230,7 +265,21 @@ class TaskController extends Controller
         $user = auth()->user();
 
         try {
-            $task = Task::with(['project.workspace', 'assignees', 'comments', 'attachments.createdBy', 'status', 'activityLogs', 'priority'])
+            $task = Task::with([
+                'project.workspace', 
+                'assignees', 
+                'comments', 
+                'attachments.createdBy', 
+                'status', 
+                'activityLogs', 
+                'priority',
+                'relatedFrom.task',
+                'relatedFrom.relatedTask',
+                'relatedFrom.relationType',
+                'relatedTo.task',
+                'relatedTo.relatedTask',
+                'relatedTo.relationType',
+            ])
             ->where('uuid', $uuid)->first();
             if (!$task) {
                 return $this->errorResponse('Tugas tidak ditemukan.', 404);
@@ -274,6 +323,9 @@ class TaskController extends Controller
                 }
             }
 
+            $assignees = $data['assignees'] ?? null;
+            $relatedTasks = $data['related_tasks'] ?? null;
+
             unset($data['attachments']);
             unset($data['assignees']);
             unset($data['related_tasks']);
@@ -295,25 +347,22 @@ class TaskController extends Controller
 
             // Handle assignees if any
             if ($request->has('assignees')) {
-                $assignees = $data['assignees'];
                 foreach ($assignees as $assignee) {
-                    $task->assignees()->create([
+                    TaskAssignee::create([
+                        'task_id' => $task->id,
                         'user_id' => $assignee['user_id'],
-                        'created_by' => $user->id,
-                        'updated_by' => $user->id,
+                        'assigned_by' => $user->id,
                     ]);
                 }
             }
 
             // Handle related tasks if any
             if ($request->has('related_tasks')) {
-                $relatedTasks = $data['related_tasks'];
                 foreach ($relatedTasks as $rel) {
-                    $task->relatedTasks()->create([
-                        'related_task_id' => $rel['task_id'],
+                    TaskRelation::create([
+                        'task_id' => $task->id,
+                        'related_task_id' => $rel['related_task_id'],
                         'relation_type_id' => $rel['relation_type_id'],
-                        'created_by' => $user->id,
-                        'updated_by' => $user->id,
                     ]);
                 }
             }
@@ -375,6 +424,10 @@ class TaskController extends Controller
 
             // Simpan data original untuk audit log
             $originalData = $task->toArray();
+
+            $assignees = $data['assignees'] ?? null;
+            $relatedTasks = $data['related_tasks'] ?? null;
+
             unset($data['attachments']);
             unset($data['assignees']);
             unset($data['related_tasks']);
@@ -392,27 +445,24 @@ class TaskController extends Controller
 
             // Handle assignees if any
             if ($request->has('assignees')) {
-                $assignees = $data['assignees'];
-                $task->assignees()->delete();
+                TaskAssignee::where('task_id', $task->id)->delete();
                 foreach ($assignees as $assignee) {
-                    $task->assignees()->create([
+                    TaskAssignee::create([
+                        'task_id' => $task->id,
                         'user_id' => $assignee['user_id'],
-                        'created_by' => $user->id,
-                        'updated_by' => $user->id,
+                        'assigned_by' => $user->id,
                     ]);
                 }
             }
 
             // Handle related tasks if any
             if ($request->has('related_tasks')) {
-                $relatedTasks = $data['related_tasks'];
-                $task->relatedTasks()->delete();
+                TaskRelation::where('task_id', $task->id)->delete();
                 foreach ($relatedTasks as $rel) {
-                    $task->relatedTasks()->create([
-                        'related_task_id' => $rel['task_id'],
+                    TaskRelation::create([
+                        'task_id' => $task->id,
+                        'related_task_id' => $rel['related_task_id'],
                         'relation_type_id' => $rel['relation_type_id'],
-                        'created_by' => $user->id,
-                        'updated_by' => $user->id,
                     ]);
                 }
             }
@@ -643,16 +693,23 @@ class TaskController extends Controller
     {
         $user = auth()->user();
 
-        $task = Task::with(['relatedTasks', 'relatedTasks.relatedTask', 'relatedTasks.relationType'])
-            ->where('uuid', $uuid)
-            ->first();
+        $task = Task::with([
+            'relatedFrom.task',
+            'relatedFrom.relatedTask',
+            'relatedFrom.relationType',
+            'relatedTo.task',
+            'relatedTo.relatedTask',
+            'relatedTo.relationType',
+        ])
+        ->where('uuid', $uuid)
+        ->first();
 
         if (!$task) {
             return $this->errorResponse('Tugas tidak ditemukan.', 404);
         }
 
         return $this->successResponse(
-            $task->relatedTasks,
+            $task,
             'Tugas terkait berhasil diambil.'
         );
     }

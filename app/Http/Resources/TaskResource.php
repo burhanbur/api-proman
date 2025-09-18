@@ -85,6 +85,26 @@ class TaskResource extends JsonResource
             'attachments_count' => $this->whenLoaded('attachments', function () {
                 return $this->attachments->count();
             }, 0),
+            'related_from' => $this->whenLoaded('relatedFrom', function () {
+                return $this->relatedFrom->map(function ($relation) {
+                    return [
+                        'task_id' => $relation->task->id,
+                        'task_uuid' => $relation->task->uuid,
+                        'title' => $relation->task->title,
+                        'relation_type' => $relation->relationType->name ?? null,
+                    ];
+                });
+            }, []),
+            'related_to' => $this->whenLoaded('relatedTo', function () {
+                return $this->relatedTo->map(function ($relation) {
+                    return [
+                        'task_id' => $relation->relatedTask->id,
+                        'task_uuid' => $relation->relatedTask->uuid,
+                        'title' => $relation->relatedTask->title,
+                        'relation_type' => $relation->relationType->name ?? null,
+                    ];
+                });
+            }, []),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
