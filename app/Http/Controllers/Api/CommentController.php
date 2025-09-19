@@ -185,8 +185,18 @@ class CommentController extends Controller
             // Simpan data original untuk audit log
             $originalData = $comment->toArray();
 
-            $data['updated_by'] = $user->id;
-            $comment->update($data);
+            $params['comment'] = $data['comment'];
+            $params['updated_by'] = $user->id;
+            $comment->update($params);
+
+            // handle attachments if any using DocumentService
+            if ($request->hasFile('attachments')) {
+                $files = $request->file('attachments');
+                $documentService = new DocumentService();
+                // saveAttachments stores files and creates Attachment records
+                // pass the authenticated user id to be the creator/updater
+                $documentService->saveAttachments($files, 'comment', $comment->id, $user->id);
+            }
 
             // Log audit untuk comment yang diupdate
             $this->auditUpdated($comment, $originalData, "Komentar berhasil diperbarui di task '{$comment->task->title}'", $request);
