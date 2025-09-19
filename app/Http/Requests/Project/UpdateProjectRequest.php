@@ -34,6 +34,7 @@ class UpdateProjectRequest extends BaseFormRequest
             'logo.file' => 'Logo project harus berupa file.',
             'logo.image' => 'Logo project harus berupa gambar.',
             'logo.max' => 'Ukuran logo project maksimal 5MB.',
+            'logo.uploaded' => 'Logo project gagal diunggah. Periksa ukuran file (maks 5MB), tipe file, dan konfigurasi server (upload_max_filesize / post_max_size).',
             'is_active.boolean' => 'Status aktif harus berupa boolean.',
             'is_public.boolean' => 'Status publik harus berupa boolean.',
             'members.array' => 'Anggota harus berupa array.',

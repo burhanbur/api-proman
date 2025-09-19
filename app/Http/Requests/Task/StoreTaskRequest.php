@@ -51,6 +51,7 @@ class StoreTaskRequest extends BaseFormRequest
             'attachments.array' => 'Lampiran harus berupa array.',
             'attachments.*.file' => 'Setiap lampiran harus berupa file.',
             'attachments.*.max' => 'Ukuran setiap lampiran maksimal 5MB.',
+            'attachments.*.uploaded' => 'Lampiran gagal diunggah. Periksa ukuran file (maks 5MB), tipe file, dan konfigurasi server (upload_max_filesize / post_max_size).',
             'related_tasks.array' => 'Tugas terkait harus berupa array.',
             'related_tasks.*.related_task_id.required' => 'ID tugas terkait wajib diisi.',
             'related_tasks.*.related_task_id.integer' => 'ID tugas terkait harus berupa integer.',

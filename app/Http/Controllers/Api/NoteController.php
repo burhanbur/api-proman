@@ -26,7 +26,7 @@ class NoteController extends Controller
             'content' => 'required|string',
             // optional attachments
             'attachments' => 'sometimes|array',
-            'attachments.*' => 'file|max:51200', // max 50MB per file
+            'attachments.*' => 'file|max:5120', // max 5MB per file
         ]);
 
         $data = $request->only(['model_type', 'model_id', 'content']);

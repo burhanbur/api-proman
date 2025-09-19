@@ -34,6 +34,7 @@ class StoreCommentRequest extends BaseFormRequest
             'comment.max' => 'Komentar maksimal 5000 karakter.',
             'attachments.array' => 'Lampiran harus berupa array.',
             'attachments.*.file' => 'Setiap lampiran harus berupa file.',
+            'attachments.*.uploaded' => 'Lampiran gagal diunggah. Periksa ukuran file (maks 5MB), tipe file, dan konfigurasi server (upload_max_filesize / post_max_size).',
             'attachments.*.max' => 'Ukuran setiap lampiran maksimal 5MB.',
         ];
     }
