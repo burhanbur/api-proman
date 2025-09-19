@@ -88,10 +88,10 @@ class TaskResource extends JsonResource
             'related_from' => $this->whenLoaded('relatedFrom', function () {
                 return $this->relatedFrom->map(function ($relation) {
                     return [
-                        'task_id' => $relation->task->id,
-                        'task_uuid' => $relation->task->uuid,
-                        'title' => $relation->task->title,
-                        'relation_type' => $relation->relationType->name ?? null,
+                        'task_id' => @$relation->task->id,
+                        'task_uuid' => @$relation->task->uuid,
+                        'title' => @$relation->task->title,
+                        'relation_type' => @$relation->relationType->name,
                     ];
                 });
             }, []),
