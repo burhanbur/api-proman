@@ -246,6 +246,7 @@ class InitialSeeder extends Seeder
                     'updated_at' => now()
                 ],
             ]);
+            
             DB::commit();
         } catch (Exception $ex) {
             DB::rollBack();

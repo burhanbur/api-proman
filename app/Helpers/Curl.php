@@ -19,10 +19,23 @@ if (!function_exists('postCurl')) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $output = curl_exec($ch);
+        $error = curl_error($ch);
 
         curl_close($ch);
+
+        // Handle cURL errors
+        if ($error) {
+            \Log::error("cURL Error: " . $error);
+            return null;
+        }
         
         $data = json_decode($output);
+
+        // Handle JSON decode errors
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            \Log::error("JSON Decode Error: " . json_last_error_msg());
+            return null;
+        }
         
         return $data;
     }

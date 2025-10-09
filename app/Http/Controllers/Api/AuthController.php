@@ -75,16 +75,51 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string|min:3|max:255',
+            'password' => 'required|string|min:6',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
         $credentials = $request->only('username', 'password');
 
         $user = User::where('username', $credentials['username'])->first();
 
-        if (!$user) {
-            return $this->errorResponse('Login gagal. Periksa kembali data Anda.', 401);
-        }
+        if (config('sso.sso_auth')) {
+            $url = config('sso.sso_url') . '/api/login';
+            $result = postCurl($url, $credentials);
 
-        if (!password_verify($credentials['password'], $user->password)) {
-            return $this->errorResponse('Kombinasi username dan password tidak valid.', 401);
+            if (!$result || !isset($result->status) || !$result->status) {
+                Log::warning('SSO Login failed', ['username' => $credentials['username']]);
+                $message = 'Login gagal. Periksa kembali data Anda.';
+                return $this->errorResponse($message, 401);
+            }
+
+            if (!$user) {
+                // simpan user baru
+                $user = new User();
+                $user->uuid = Str::uuid();
+                $user->username = $credentials['username'];
+                $user->name = $result->data->name ?? $credentials['username'];
+                $user->email = $result->data->email ?? null;
+                $user->password = bcrypt($credentials['password']);
+                $user->save();
+            } else {
+                $user->name = $result->data->name ?? $user->name;
+                $user->email = $result->data->email ?? $user->email;
+                $user->save();
+            }
+        } else {
+            if (!$user) {
+                return $this->errorResponse('Login gagal. Periksa kembali data Anda.', 401);
+            }
+
+            if (!password_verify($credentials['password'], $user->password)) {
+                return $this->errorResponse('Kombinasi username dan password tidak valid.', 401);
+            }
         }
 
         $token = JWTAuth::fromUser($user);
@@ -97,7 +132,7 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $expiredIn,
-            'formatted_expires_in' => Carbon::now()->addMinutes()->format('Y-m-d H:i:s'),
+            'formatted_expires_in' => Carbon::now()->addMinutes(config('jwt.ttl'))->format('Y-m-d H:i:s'),
         ]);
 
         $response->cookie(
