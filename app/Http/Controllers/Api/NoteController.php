@@ -151,6 +151,8 @@ class NoteController extends Controller
             $this->auditDeleted($note, 'Note deleted', $request);
             // set deleted_by if soft deletes used; otherwise just delete
             if (method_exists($note, 'delete')) {
+                $note->deleted_by = $request->user()->id ?? null;
+                $note->save();
                 $note->delete();
             } else {
                 $note->forceDelete();
