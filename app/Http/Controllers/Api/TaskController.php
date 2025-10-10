@@ -389,7 +389,7 @@ class TaskController extends Controller
         try {
             $comments = Comment::with(['task.project', 'createdBy', 'attachments.createdBy'])
             ->where('task_id', $taskId)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'asc')
             ->get();
 
             return $this->successResponse(

@@ -33,6 +33,21 @@ class NoteController extends Controller
         $data['uuid'] = (string) Str::uuid();
         $data['created_by'] = $request->user()->id ?? null;
         $data['updated_by'] = $request->user()->id ?? null;
+
+        // map short names to model class and folder name
+        $map = [
+            'workspace' => ['class' => \App\Models\Workspace::class],
+            'project' => ['class' => \App\Models\Project::class],
+        ];
+
+        $modelType = strtolower($data['model_type']);
+        if (!isset($map[$modelType])) {
+            throw new Exception('Tipe model tidak didukung.');
+        }
+
+        $modelClass = $map[$modelType]['class'];
+        $data['model_type'] = $modelClass;
+
         // create note and attachments atomically
         DB::beginTransaction();
         try {
