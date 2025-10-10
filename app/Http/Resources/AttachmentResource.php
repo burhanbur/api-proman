@@ -33,7 +33,7 @@ class AttachmentResource extends JsonResource
             // File info and URLs
             'file_path' => $this->file_path,
             'file_url' => $this->when($this->file_path, function () {
-                return "/{$this->file_path}";
+                return "/storage/{$this->file_path}";
             }),
             'download_url' => $this->when($this->uuid, function () {
                 // try to build download URL using short model type
@@ -45,7 +45,7 @@ class AttachmentResource extends JsonResource
                 ];
                 $short = $map[$this->model_type] ?? null;
                 if ($short && $this->model_id) {
-                    return url("/api/attachments/{$short}/{$this->model_id}/{$this->uuid}/download");
+                    return "/api/attachments/{$short}/{$this->model_id}/{$this->uuid}/download";
                 }
                 return null;
             }),
