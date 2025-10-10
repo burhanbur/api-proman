@@ -39,7 +39,7 @@ trait ApiResponse
         $response = [
             'success' => true,
             'message' => $message,
-            'url' => request()->url(),
+            'url' => $this->getRequestUrl(),
             'method' => request()->method(),
             'timestamp' => now()->toDateTimeString(),
             'total_data' => $count,
@@ -84,9 +84,29 @@ trait ApiResponse
         return response()->json([
             'success' => false,
             'message' => $message,
-            'url' => request()->url(),
+            'url' => $this->getRequestUrl(),
             'method' => request()->method(),
             'timestamp' => now()->toDateTimeString(),
         ], $code);
+    }
+
+    /**
+     * Build request URL respecting common proxy headers (X-Forwarded-Host, X-Forwarded-Proto).
+     * This helps when the app is behind a reverse proxy that rewrites host/scheme.
+     */
+    private function getRequestUrl()
+    {
+        // Prefer X-Forwarded-Host and X-Forwarded-Proto when present
+        $headers = request()->headers;
+        $forwardedHost = $headers->get('x-forwarded-host');
+        $forwardedProto = $headers->get('x-forwarded-proto');
+
+        $host = $forwardedHost ?: request()->getHttpHost();
+        $scheme = $forwardedProto ?: request()->getScheme();
+
+        // Preserve the request URI (path + query)
+        $uri = request()->getRequestUri();
+
+        return $scheme.'://'.$host.$uri;
     }
 }
