@@ -33,7 +33,7 @@ class AttachmentResource extends JsonResource
             // File info and URLs
             'file_path' => $this->file_path,
             'file_url' => $this->when($this->file_path, function () {
-                return url("/storage/{$this->file_path}");
+                return "/{$this->file_path}";
             }),
             'download_url' => $this->when($this->uuid, function () {
                 // try to build download URL using short model type
