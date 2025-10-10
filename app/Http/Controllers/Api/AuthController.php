@@ -102,7 +102,7 @@ class AuthController extends Controller
                 // simpan user baru
                 $user = new User();
                 $user->uuid = Str::uuid();
-                $user->code = $reslt->data->code ?? null;
+                $user->code = $result->data->code ?? null;
                 $user->username = $credentials['username'];
                 $user->name = $result->data->name ?? $credentials['username'];
                 $user->email = $result->data->email ?? null;
