@@ -102,9 +102,11 @@ class AuthController extends Controller
                 // simpan user baru
                 $user = new User();
                 $user->uuid = Str::uuid();
+                $user->code = $reslt->data->code ?? null;
                 $user->username = $credentials['username'];
                 $user->name = $result->data->name ?? $credentials['username'];
                 $user->email = $result->data->email ?? null;
+                $user->system_role_id = 2; // default role user
                 $user->password = bcrypt($credentials['password']);
                 $user->save();
             } else {
