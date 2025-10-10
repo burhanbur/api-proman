@@ -88,7 +88,15 @@ class NoteController extends Controller
         try {
             $query = Note::with(['attachments', 'createdBy', 'updatedBy']);
 
-            $query->where('model_type', 'App\\Models\\' . $modelType);
+            // map short names to model class and folder name
+            $map = [
+                'workspace' => ['class' => \App\Models\Workspace::class],
+                'project' => ['class' => \App\Models\Project::class],
+            ];
+
+            $modelClass = $map[$modelType]['class'];
+
+            $query->where('model_type', $modelClass);
 
             $query->where('model_id', (int) $modelId);
 
