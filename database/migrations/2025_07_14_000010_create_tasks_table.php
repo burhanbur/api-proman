@@ -12,9 +12,9 @@ return new class extends Migration {
             $table->unsignedBigInteger('project_id');
             $table->string('title');
             $table->text('description')->nullable();
-            $table->double('point')->default(0);
+            $table->double('point')->nullable()->default(0);
             $table->dateTime('due_date')->nullable();
-            $table->unsignedBigInteger('priority_id')->nullable();
+            $table->unsignedBigInteger('priority_id')->nullable()->default(1);
             $table->unsignedBigInteger('status_id')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
