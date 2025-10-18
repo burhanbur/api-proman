@@ -16,7 +16,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 use App\Models\Notification;
+use App\Models\NotificationEvent;
+use App\Models\UserNotificationPreference;
 use App\Http\Resources\NotificationResource;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 
 use Exception;
@@ -131,6 +134,88 @@ class NotificationController extends Controller
             return $this->successResponse(null, 'Semua notifikasi telah ditandai sebagai dibaca.');
         } catch (Exception $ex) {
             Log::error('Error marking all notifications as read: ' . $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine());
+            return $this->errorResponse($ex->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get unread notification count
+     */
+    public function unreadCount()
+    {
+        try {
+            $notificationService = app(NotificationService::class);
+            $count = $notificationService->getUnreadCount(auth()->id());
+
+            return $this->successResponse(['count' => $count], 'Unread count retrieved successfully');
+        } catch (Exception $ex) {
+            Log::error('Error getting unread count: ' . $ex->getMessage());
+            return $this->errorResponse($ex->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get user notification preferences
+     */
+    public function getPreferences()
+    {
+        try {
+            $notificationService = app(NotificationService::class);
+            $preferences = $notificationService->getUserPreferences(auth()->id());
+
+            return $this->successResponse($preferences, 'Preferences retrieved successfully');
+        } catch (Exception $ex) {
+            Log::error('Error getting preferences: ' . $ex->getMessage());
+            return $this->errorResponse($ex->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update user notification preference
+     */
+    public function updatePreference(Request $request, $eventId)
+    {
+        $validator = Validator::make($request->all(), [
+            'is_enabled' => 'required|boolean',
+            'channel_email' => 'nullable|boolean',
+            'channel_push' => 'nullable|boolean',
+            'channel_in_app' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors()->first(), 422);
+        }
+
+        try {
+            $notificationService = app(NotificationService::class);
+            
+            $preference = $notificationService->setUserPreference(
+                auth()->id(),
+                $eventId,
+                $request->only(['is_enabled', 'channel_email', 'channel_push', 'channel_in_app'])
+            );
+
+            return $this->successResponse($preference, 'Preference updated successfully');
+        } catch (Exception $ex) {
+            Log::error('Error updating preference: ' . $ex->getMessage());
+            return $this->errorResponse($ex->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get all available notification events
+     */
+    public function getEvents()
+    {
+        try {
+            $events = NotificationEvent::active()
+                ->orderBy('category')
+                ->orderBy('name')
+                ->get();
+
+            return $this->successResponse($events, 'Events retrieved successfully');
+        } catch (Exception $ex) {
+            Log::error('Error getting events: ' . $ex->getMessage());
             return $this->errorResponse($ex->getMessage(), 500);
         }
     }

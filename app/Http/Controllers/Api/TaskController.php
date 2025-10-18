@@ -17,6 +17,7 @@ use App\Models\TaskRelationType;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
 use App\Services\DocumentService;
+use App\Services\NotificationService;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -35,6 +36,13 @@ use Exception;
 class TaskController extends Controller
 {
     use ApiResponse, HasAuditLog;
+
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     public function index() 
     {
@@ -370,6 +378,40 @@ class TaskController extends Controller
             // Log audit untuk task yang dibuat
             $this->auditCreated($task, "Task '{$task->title}' berhasil dibuat di project '{$project->name}'", $request);
 
+            // 🔔 Trigger notification: task_created
+            $this->notificationService->trigger('task_created', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'creator_id' => $user->id,
+                'creator_name' => $user->name,
+                'project_id' => $task->project_id,
+                'workspace_id' => $project->workspace_id,
+                'triggered_by' => $user->id,
+                'model_type' => 'Task',
+                'model_id' => $task->id,
+                'detail_url' => "/tasks/{$task->uuid}",
+            ]);
+
+            // 🔔 Trigger notification untuk setiap assignee: task_assigned
+            if ($assignees) {
+                foreach ($assignees as $assignee) {
+                    $this->notificationService->trigger('task_assigned', [
+                        'task_id' => $task->id,
+                        'task_title' => $task->title,
+                        'assignee_id' => $assignee['user_id'],
+                        'assigner_id' => $user->id,
+                        'assigner_name' => $user->name,
+                        'creator_id' => $user->id,
+                        'project_id' => $task->project_id,
+                        'workspace_id' => $project->workspace_id,
+                        'triggered_by' => $user->id,
+                        'model_type' => 'Task',
+                        'model_id' => $task->id,
+                        'detail_url' => "/tasks/{$task->uuid}",
+                    ]);
+                }
+            }
+
             DB::commit();
             return $this->successResponse(
                 new TaskResource($task),
@@ -445,12 +487,56 @@ class TaskController extends Controller
 
             // Handle assignees if any
             if ($request->has('assignees')) {
+                // Get old assignees before delete
+                $oldAssignees = TaskAssignee::where('task_id', $task->id)->pluck('user_id')->toArray();
+                
                 TaskAssignee::where('task_id', $task->id)->delete();
+                
+                $newAssignees = [];
                 foreach ($assignees as $assignee) {
                     TaskAssignee::create([
                         'task_id' => $task->id,
                         'user_id' => $assignee['user_id'],
                         'assigned_by' => $user->id,
+                    ]);
+                    $newAssignees[] = $assignee['user_id'];
+                }
+                
+                // 🔔 Notify newly assigned users
+                $addedAssignees = array_diff($newAssignees, $oldAssignees);
+                foreach ($addedAssignees as $assigneeId) {
+                    $this->notificationService->trigger('task_assigned', [
+                        'task_id' => $task->id,
+                        'task_title' => $task->title,
+                        'assignee_id' => $assigneeId,
+                        'assigner_id' => $user->id,
+                        'assigner_name' => $user->name,
+                        'creator_id' => $task->created_by,
+                        'project_id' => $task->project_id,
+                        'workspace_id' => $task->project->workspace_id,
+                        'triggered_by' => $user->id,
+                        'model_type' => 'Task',
+                        'model_id' => $task->id,
+                        'detail_url' => "/tasks/{$task->uuid}",
+                    ]);
+                }
+                
+                // 🔔 Notify removed assignees
+                $removedAssignees = array_diff($oldAssignees, $newAssignees);
+                foreach ($removedAssignees as $assigneeId) {
+                    $this->notificationService->trigger('task_unassigned', [
+                        'task_id' => $task->id,
+                        'task_title' => $task->title,
+                        'assignee_id' => $assigneeId,
+                        'remover_id' => $user->id,
+                        'remover_name' => $user->name,
+                        'creator_id' => $task->created_by,
+                        'project_id' => $task->project_id,
+                        'workspace_id' => $task->project->workspace_id,
+                        'triggered_by' => $user->id,
+                        'model_type' => 'Task',
+                        'model_id' => $task->id,
+                        'detail_url' => "/tasks/{$task->uuid}",
                     ]);
                 }
             }
@@ -501,6 +587,21 @@ class TaskController extends Controller
 
             // Log audit sebelum menghapus
             $this->auditDeleted($task, "Task '{$task->title}' berhasil dihapus", request());
+
+            // 🔔 Trigger notification: task_deleted
+            $this->notificationService->trigger('task_deleted', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'deleter_id' => $user->id,
+                'deleter_name' => $user->name,
+                'assignee_id' => $task->assignees->pluck('id')->toArray(),
+                'creator_id' => $task->created_by,
+                'project_id' => $task->project_id,
+                'workspace_id' => $task->project->workspace_id,
+                'triggered_by' => $user->id,
+                'model_type' => 'Task',
+                'model_id' => $task->id,
+            ]);
 
             $task->deleted_by = $user->id;
             $task->save();
@@ -567,6 +668,42 @@ class TaskController extends Controller
             $message = "Status task '{$task->title}' diubah dari '" . ($oldStatusName ?? 'Unknown') . "' ke '" . ($newStatusName ?? 'Unknown') . "'";
             $this->auditUpdated($task, $originalData, $message, $request);
 
+            // 🔔 Trigger notification: task_status_changed
+            $this->notificationService->trigger('task_status_changed', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'old_status' => $oldStatusName ?? 'Unknown',
+                'new_status' => $newStatusName ?? 'Unknown',
+                'updater_id' => $user->id,
+                'updater_name' => $user->name,
+                'assignee_id' => $task->assignees->pluck('id')->toArray(),
+                'creator_id' => $task->created_by,
+                'project_id' => $task->project_id,
+                'workspace_id' => $task->project->workspace_id,
+                'triggered_by' => $user->id,
+                'model_type' => 'Task',
+                'model_id' => $task->id,
+                'detail_url' => "/tasks/{$task->uuid}",
+            ]);
+
+            // 🔔 Special: Jika status completed, trigger task_completed
+            if ($newStatusObj && $newStatusObj->is_completed) {
+                $this->notificationService->trigger('task_completed', [
+                    'task_id' => $task->id,
+                    'task_title' => $task->title,
+                    'completer_id' => $user->id,
+                    'completer_name' => $user->name,
+                    'assignee_id' => $task->assignees->pluck('id')->toArray(),
+                    'creator_id' => $task->created_by,
+                    'project_id' => $task->project_id,
+                    'workspace_id' => $task->project->workspace_id,
+                    'triggered_by' => $user->id,
+                    'model_type' => 'Task',
+                    'model_id' => $task->id,
+                    'detail_url' => "/tasks/{$task->uuid}",
+                ]);
+            }
+
             DB::commit();
             return $this->successResponse(
                 new TaskResource($task),
@@ -628,6 +765,22 @@ class TaskController extends Controller
             // Log audit untuk penugasan
             $this->auditCustom($task, 'assigned', null, null, "Menugaskan '{$assigneeUser->name}' ke task '{$task->title}'", $request);
 
+            // 🔔 Trigger notification: task_assigned
+            $this->notificationService->trigger('task_assigned', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'assignee_id' => $assigneeId,
+                'assigner_id' => $user->id,
+                'assigner_name' => $user->name,
+                'creator_id' => $task->created_by,
+                'project_id' => $task->project_id,
+                'workspace_id' => $task->project->workspace_id,
+                'triggered_by' => $user->id,
+                'model_type' => 'Task',
+                'model_id' => $task->id,
+                'detail_url' => "/tasks/{$task->uuid}",
+            ]);
+
             DB::commit();
             return $this->successResponse(
                 new TaskResource($task->load('assignees')),
@@ -676,6 +829,22 @@ class TaskController extends Controller
 
             // Log audit untuk pembatalan penugasan
             $this->auditCustom($task, 'unassigned', null, null, "Membatalkan penugasan '{$assigneeUser->name}' dari task '{$task->title}'", request());
+
+            // 🔔 Trigger notification: task_unassigned
+            $this->notificationService->trigger('task_unassigned', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'assignee_id' => $userId,
+                'remover_id' => $user->id,
+                'remover_name' => $user->name,
+                'creator_id' => $task->created_by,
+                'project_id' => $task->project_id,
+                'workspace_id' => $task->project->workspace_id,
+                'triggered_by' => $user->id,
+                'model_type' => 'Task',
+                'model_id' => $task->id,
+                'detail_url' => "/tasks/{$task->uuid}",
+            ]);
 
             DB::commit();
             return $this->successResponse(

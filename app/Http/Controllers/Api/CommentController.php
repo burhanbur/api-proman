@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Traits\ApiResponse;
 use App\Traits\HasAuditLog;
 use App\Services\DocumentService;
+use App\Services\NotificationService;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,13 @@ use Exception;
 class CommentController extends Controller
 {
     use ApiResponse, HasAuditLog;
+
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     public function index(Request $request) 
     {
@@ -113,7 +121,7 @@ class CommentController extends Controller
         DB::beginTransaction();
         try {
             // Basic permission: user must belong to project or be admin
-            $task = Task::with(['attachments.createdBy', 'project'])->where('id', $data['task_id'])->first();
+            $task = Task::with(['attachments.createdBy', 'project', 'assignees'])->where('id', $data['task_id'])->first();
             if (!$task) {
                 return $this->errorResponse('Task tidak ditemukan.', 404);
             }
@@ -144,6 +152,34 @@ class CommentController extends Controller
 
             // Log audit untuk comment yang dibuat
             $this->auditCreated($comment, "Komentar berhasil ditambahkan ke task '{$task->title}'", $request);
+
+            // 🔔 Trigger notification: comment_added
+            \Log::info('Triggering comment_added notification', [
+                'task_id' => $task->id,
+                'comment_id' => $comment->id,
+                'assignees_count' => $task->assignees->count(),
+                'assignee_ids' => $task->assignees->pluck('id')->toArray(),
+            ]);
+            
+            $this->notificationService->trigger('comment_added', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'comment_id' => $comment->id,
+                'comment_preview' => Str::limit($comment->comment, 50),
+                'commenter_id' => $user->id,
+                'commenter_name' => $user->name,
+                'assignee_id' => $task->assignees->pluck('id')->toArray(),
+                'creator_id' => $task->created_by,
+                'project_id' => $task->project_id,
+                'workspace_id' => $task->project->workspace_id,
+                'triggered_by' => $user->id,
+                'model_type' => 'Comment',
+                'model_id' => $comment->id,
+                'detail_url' => "/tasks/{$task->uuid}#comment-{$comment->id}",
+            ]);
+
+            // 🔔 Check for mentions (@username)
+            $this->handleMentions($comment, $task, $user);
 
             DB::commit();
             return $this->successResponse(
@@ -251,6 +287,38 @@ class CommentController extends Controller
             DB::rollBack();
             $errMessage = $ex->getMessage() . ' at ' . $ex->getFile() . ':' . $ex->getLine();
             return $this->errorResponse($errMessage, $ex->getCode());
+        }
+    }
+
+    /**
+     * Handle @mentions in comments
+     */
+    private function handleMentions(Comment $comment, Task $task, $currentUser)
+    {
+        // Extract @mentions from comment text
+        preg_match_all('/@(\w+)/', $comment->comment, $matches);
+        $mentions = $matches[1] ?? [];
+
+        foreach ($mentions as $username) {
+            $mentionedUser = \App\Models\User::where('username', $username)->first();
+            
+            if ($mentionedUser && $mentionedUser->id !== $currentUser->id) {
+                // 🔔 Trigger notification: comment_mentioned
+                $this->notificationService->trigger('comment_mentioned', [
+                    'task_id' => $task->id,
+                    'task_title' => $task->title,
+                    'comment_id' => $comment->id,
+                    'assignee_id' => $mentionedUser->id,
+                    'commenter_id' => $currentUser->id,
+                    'commenter_name' => $currentUser->name,
+                    'project_id' => $task->project_id,
+                    'workspace_id' => $task->project->workspace_id,
+                    'triggered_by' => $currentUser->id,
+                    'model_type' => 'Comment',
+                    'model_id' => $comment->id,
+                    'detail_url' => "/tasks/{$task->uuid}#comment-{$comment->id}",
+                ]);
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AttachmentResource;
 use App\Models\Attachment;
 use App\Services\DocumentService;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,6 +22,13 @@ use Exception;
 class AttachmentController extends Controller
 {
     use ApiResponse;
+
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     public function index(Request $request) 
     {
@@ -96,6 +104,30 @@ class AttachmentController extends Controller
             $files = $request->file('file');
             
             $attachments = $documentService->saveAttachments($files, $modelType, $modelId, $userId);
+
+            // 🔔 Trigger notification: file_attached (only for Task model)
+            if (strtolower($modelType) === 'task') {
+                $task = Task::with(['project', 'assignees'])->find($modelId);
+                if ($task) {
+                    foreach ($attachments as $attachment) {
+                        $this->notificationService->trigger('file_attached', [
+                            'task_id' => $task->id,
+                            'task_title' => $task->title,
+                            'file_name' => $attachment->original_filename,
+                            'uploader_id' => $userId,
+                            'uploader_name' => $request->user()->name ?? 'Unknown',
+                            'assignee_id' => $task->assignees->pluck('id')->toArray(),
+                            'creator_id' => $task->created_by,
+                            'project_id' => $task->project_id,
+                            'workspace_id' => $task->project->workspace_id,
+                            'triggered_by' => $userId,
+                            'model_type' => 'Attachment',
+                            'model_id' => $attachment->id,
+                            'detail_url' => "/tasks/{$task->uuid}",
+                        ]);
+                    }
+                }
+            }
 
             if (count($attachments) === 1) {
                 return $this->successResponse(new AttachmentResource($attachments[0]), 'File berhasil diupload.', 201);
